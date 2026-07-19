@@ -47,6 +47,9 @@ def parse_response(raw: str, paragraphs: list[str]) -> ParseResult:
     for item in items:
         i = item.get("para_idx")
         if not isinstance(i, int) or not (0 <= i < len(paragraphs)):
+            elements = item.get("elements")
+            if isinstance(elements, list):
+                dropped += len(elements)
             continue
         for el in item.get("elements", []):
             label, quote = el.get("label"), el.get("quote", "")

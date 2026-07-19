@@ -38,3 +38,30 @@ def test_missing_quote_dropped_not_fatal():
 def test_bad_json_raises():
     with pytest.raises(LabelError):
         parse_response("not json {", PARAS)
+
+
+def test_out_of_range_para_idx_counts_its_elements_as_dropped():
+    # para_idx 5 is out of range for a 2-paragraph input (valid indices: 0, 1).
+    # The skipped item carries 2 elements that must count toward `dropped`.
+    # The normal item (para_idx 0) has one valid, resolvable element and must
+    # still produce a span, unaffected by the skipped item.
+    raw = json.dumps({"paragraphs": [
+        {"para_idx": 5, "elements": [
+            {"label": "AGENTE", "quote": "o governo"},
+            {"label": "EFEITO", "quote": "reduzir o problema"}]},
+        {"para_idx": 0, "elements": [
+            {"label": "ACAO", "quote": "sem proposta"}]}]})
+    result = parse_response(raw, PARAS)
+    assert len(result.spans) == 2
+    assert len(result.spans[0]) == 1
+    assert result.spans[1] == []
+    assert result.dropped == 2
+
+
+def test_out_of_range_para_idx_with_non_list_elements_is_safe():
+    # A non-list `elements` on a skipped item (malformed LLM JSON) must not
+    # raise, and must not be counted (we can't know how many elements it held).
+    raw = json.dumps({"paragraphs": [{"para_idx": 5, "elements": "oops"}]})
+    result = parse_response(raw, PARAS)
+    assert result.spans == [[], []]
+    assert result.dropped == 0
