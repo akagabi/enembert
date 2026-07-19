@@ -14,3 +14,15 @@ def test_dedup_priority_a_over_b():
 
 def test_dedup_keeps_distinct():
     assert len(dedup([_row("sourceB", "um"), _row("sourceB", "dois")])) == 2
+
+def test_dedup_priority_holds_when_higher_priority_seen_first():
+    # Reverse input order: higher-priority config seen first
+    rows = [_row("sourceAOnly", "Mesmo  texto"), _row("sourceB", "mesmo texto")]
+    out = dedup(rows)
+    assert len(out) == 1 and out[0]["config"] == "sourceAOnly"
+
+def test_dedup_same_priority_keeps_first():
+    # Two rows with same priority (sourceB) and normalizing-equal text
+    rows = [_row("sourceB", "mesmo texto"), _row("sourceB", "Mesmo  texto")]
+    out = dedup(rows)
+    assert len(out) == 1 and out[0]["essay_text"] == "mesmo texto"
