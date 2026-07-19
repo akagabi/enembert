@@ -1,0 +1,9 @@
+.venv/
+/data/
+__pycache__/
+*.egg-info/
+runs/
+demo/node_modules/
+demo/dist/
+demo/public/models/
+.DS_Store
