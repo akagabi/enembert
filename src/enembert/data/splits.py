@@ -43,6 +43,7 @@ def freeze_gold(rows: list[dict], target: int = 250, seed: int = 42) -> dict:
 def main():
     rows = [json.loads(l) for l in open("data/corpus.jsonl")]
     out = freeze_gold(rows)
+    Path("data").mkdir(parents=True, exist_ok=True)
     Path("data/gold_freeze.json").write_text(json.dumps(out, indent=1))
     print({"gold": len(out["gold_essay_ids"]), "pool": len(out["pool_essay_ids"]),
            "gold_prompts": len(out["gold_prompts"])})
