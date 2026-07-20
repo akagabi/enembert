@@ -59,6 +59,15 @@ def test_overlap_jaccard_below_threshold_does_not_match():
     assert span_f1(g, p, "overlap")[2] == 0.0
 
 
+def test_overlap_jaccard_exactly_half_matches():
+    # intersection=2 (1..3), union = 3+3-2 = 4, jaccard = 2/4 = 0.5 exactly.
+    # Locks the >= 0.5 boundary that the G1 gate depends on: a regression to
+    # a strict > would silently drop this match and lower every gate number.
+    g = [Span(0, 3, "ACAO")]
+    p = [Span(1, 4, "ACAO")]
+    assert span_f1(g, p, "overlap")[2] == 1.0
+
+
 def test_corpus_f1_hand_computed():
     # Two essays, one paragraph each. Worked out by hand below; corpus_f1
     # must reproduce these exact numbers, exercising the aggregation path
