@@ -8,7 +8,7 @@ from enembert.training.dataset import build_hf_dataset
 BACKBONE = "neuralmind/bert-base-portuguese-cased"
 
 
-def train(out_dir="runs/model", epochs=6, lr=2e-5, batch=16):
+def train(out_dir="runs/model", epochs=6, lr=2e-5, batch=8):
     tok = AutoTokenizer.from_pretrained(BACKBONE)
     ds = build_hf_dataset(tok)
     model = AutoModelForTokenClassification.from_pretrained(

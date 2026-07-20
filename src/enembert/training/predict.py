@@ -7,7 +7,7 @@ def decode(tokens: list[tuple[int, int]], ids: list[int]) -> list[Span]:
     return bio_to_spans([t for t, _ in keep], [tag for _, tag in keep])
 
 
-def predict_spans(model, tokenizer, paragraph: str, max_length: int = 512, tail: bool = False) -> list[Span]:
+def predict_spans(model, tokenizer, paragraph: str, max_length: int = 384, tail: bool = False) -> list[Span]:
     tokenizer.truncation_side = "left" if tail else "right"
     enc = tokenizer(paragraph, truncation=True, max_length=max_length,
                     return_offsets_mapping=True, return_tensors="pt")

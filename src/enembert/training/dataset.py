@@ -39,7 +39,7 @@ def _encode_row(tokenizer, corpus, r, out_list, drop_acc):
     tail = len(paras) == 1
     for para, raw in zip(paras, r["spans"]):
         enc = encode_paragraph(tokenizer, para, [Span(**s) for s in raw],
-                               max_length=512, tail=tail)
+                               max_length=384, tail=tail)
         drop_acc[0] += enc.pop("dropped_spans")
         out_list.append(enc)
 

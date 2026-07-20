@@ -28,6 +28,23 @@ is silent: nothing counts a span lost this way.
 3. **Task 17 must count and report spans dropped by truncation.** Silently
    dropping them is what made this dangerous in the first place.
 
+**Amendment (2026-07-20, at training time).** `max_length` reduced 512 → **384**.
+Reason: on this machine (Apple MPS), batch-16 × 512-token training thrashed GPU
+memory — per-step time climbed 15s → 91s → 145s with a 33-hour ETA. Measured the
+truncation-drop trade-off on the real 800-essay labeled pool (3,035 spans):
+
+| max_length | spans dropped |
+|---|---|
+| 512 | 7 (0.23%) |
+| **384** | **22 (0.72%)** |
+| 256 | 75 (2.47%) |
+
+384 drops only 22 spans — negligibly more than 512's 7, and far better than the
+256 the original plan would have used — while being light enough to train at
+batch 8 in ~1 hour without thrashing. The tail-truncation rule (keep the
+conclusion) is unchanged, so D1's intent — never truncate away the intervention
+— still holds: 99.3% of spans survive. Training uses `max_length=384, batch=8`.
+
 `sourceB` is retained for training rather than discarded; dropping it would cost
 85% of the corpus.
 
