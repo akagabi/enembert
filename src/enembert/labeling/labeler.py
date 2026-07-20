@@ -37,28 +37,36 @@ def parse_response(raw: str, paragraphs: list[str]) -> ParseResult:
     m = re.search(r"\{.*\}", raw, re.S)
     if not m:
         raise LabelError("no JSON object in response")
+    # Everything below interprets attacker/model-controlled JSON structure. A
+    # cheap model can return valid JSON that is nonetheless the wrong *shape*
+    # (e.g. a non-dict entry in "paragraphs"), which would otherwise raise
+    # AttributeError/TypeError/etc. straight out of this function and crash
+    # the whole paid batch in label_rows. Total function: any exception while
+    # walking the parsed structure becomes a LabelError, same as a JSON parse
+    # failure, so label_rows can retry/degrade a single essay instead of
+    # losing everything already labeled.
     try:
         obj = json.loads(m.group(0))
         items = obj["paragraphs"]
-    except (json.JSONDecodeError, KeyError, TypeError) as e:
-        raise LabelError(str(e))
-    out: list[list[Span]] = [[] for _ in paragraphs]
-    dropped = 0
-    for item in items:
-        i = item.get("para_idx")
-        if not isinstance(i, int) or not (0 <= i < len(paragraphs)):
-            elements = item.get("elements")
-            if isinstance(elements, list):
-                dropped += len(elements)
-            continue
-        for el in item.get("elements", []):
-            label, quote = el.get("label"), el.get("quote", "")
-            if label not in ELEMENTS or not quote:
-                dropped += 1
+        out: list[list[Span]] = [[] for _ in paragraphs]
+        dropped = 0
+        for item in items:
+            i = item.get("para_idx")
+            if not isinstance(i, int) or not (0 <= i < len(paragraphs)):
+                elements = item.get("elements")
+                if isinstance(elements, list):
+                    dropped += len(elements)
                 continue
-            pos = paragraphs[i].find(quote)
-            if pos < 0:
-                dropped += 1
-                continue
-            out[i].append(Span(pos, pos + len(quote), label))
+            for el in item.get("elements", []):
+                label, quote = el.get("label"), el.get("quote", "")
+                if label not in ELEMENTS or not quote:
+                    dropped += 1
+                    continue
+                pos = paragraphs[i].find(quote)
+                if pos < 0:
+                    dropped += 1
+                    continue
+                out[i].append(Span(pos, pos + len(quote), label))
+    except Exception as e:
+        raise LabelError(str(e)) from e
     return ParseResult(spans=out, dropped=dropped)

@@ -1,5 +1,4 @@
-import json, os, time
-from pathlib import Path
+import os, time
 import requests
 from enembert.data.paragraphs import split_paragraphs
 from enembert.labeling.labeler import build_prompt, parse_response, LabelError
@@ -27,10 +26,14 @@ def assert_within_budget(rows: list[dict]) -> None:
 def check_env() -> str:
     key = os.environ.get("ENEMBERT_LABELER_KEY")
     if not key:
-        raise RuntimeError("Set ENEMBERT_LABELER_KEY (PERSONAL key — never an org key).")
+        raise RuntimeError("Set ENEMBERT_LABELER_KEY (use your personal key, not an org key).")
+    # Contamination tripwire, not a guarantee: this only string-matches "example-org"
+    # in the *values* of HF_*/ENEMBERT_* env vars. It cannot inspect or validate the
+    # opaque ENEMBERT_LABELER_KEY itself, so it catches obvious org-account leakage
+    # in adjacent config, not every possible way a non-personal key could end up here.
     for var, val in os.environ.items():
         if "example-org" in val.lower() and var.startswith(("HF_", "ENEMBERT_")):
-            raise RuntimeError(f"{var} points at the org ({val}); personal billing only.")
+            raise RuntimeError(f"{var} appears to reference the org account; personal billing only.")
     return key
 
 
@@ -45,7 +48,7 @@ def call_api(messages: list[dict]) -> str:
     return r.json()["choices"][0]["message"]["content"]
 
 
-def label_rows(rows: list[dict], client_call=call_api) -> list[dict]:
+def label_rows(rows: list[dict], client_call=call_api, on_row=None) -> list[dict]:
     out = []
     total_dropped = 0
     for n, r in enumerate(rows):
@@ -56,14 +59,18 @@ def label_rows(rows: list[dict], client_call=call_api) -> list[dict]:
                 result = parse_response(client_call(build_prompt(paras)), paras)
                 break
             except (LabelError, requests.RequestException):
-                time.sleep(2 ** attempt)
+                if attempt < 2:  # don't sleep after the final failed attempt
+                    time.sleep(2 ** attempt)
         if result is None:
-            out.append({"essay_id": r["essay_id"], "spans": None, "dropped": 0})
+            row_out = {"essay_id": r["essay_id"], "spans": None, "dropped": 0}
         else:
             total_dropped += result.dropped
-            out.append({"essay_id": r["essay_id"],
-                        "spans": [[s.__dict__ for s in ps] for ps in result.spans],
-                        "dropped": result.dropped})
+            row_out = {"essay_id": r["essay_id"],
+                       "spans": [[s.__dict__ for s in ps] for ps in result.spans],
+                       "dropped": result.dropped}
+        out.append(row_out)
+        if on_row is not None:
+            on_row(row_out)
         if (n + 1) % 25 == 0:
             print(f"{n + 1}/{len(rows)}, dropped so far: {total_dropped}")
     print(f"total dropped elements: {total_dropped}")

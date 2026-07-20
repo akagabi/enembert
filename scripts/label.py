@@ -18,10 +18,17 @@ if a.limit:
 rows = [corpus[i] for i in ids]
 assert_within_budget(rows)
 print(f"labeling {len(rows)} essays, est ${estimate_cost_usd(rows):.2f}")
-out = label_rows(rows)
+
 Path("data/labels").mkdir(exist_ok=True)
+# Open for writing and persist each row as it completes, BEFORE label_rows
+# starts, so a crash (or Ctrl-C, or OOM) mid-batch never loses already-paid
+# API results: everything labeled so far is already flushed to disk.
 with open(f"data/labels/{a.set}.jsonl", "w") as f:
-    for r in out:
+    def on_row(r: dict) -> None:
         f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        f.flush()
+
+    out = label_rows(rows, on_row=on_row)
+
 failed = sum(1 for r in out if r["spans"] is None)
 print(f"done, {failed} failed")

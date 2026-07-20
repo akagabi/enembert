@@ -65,3 +65,22 @@ def test_out_of_range_para_idx_with_non_list_elements_is_safe():
     result = parse_response(raw, PARAS)
     assert result.spans == [[], []]
     assert result.dropped == 0
+
+
+def test_non_dict_item_in_paragraphs_raises_labelerror_not_attributeerror():
+    # A cheap model can return syntactically valid JSON where an entry of
+    # "paragraphs" is not an object at all (e.g. a bare string). The old code
+    # called item.get(...) unguarded and raised AttributeError straight out
+    # of parse_response, which label_rows did not catch, crashing the whole
+    # paid batch. parse_response must be total: this becomes a LabelError.
+    raw = json.dumps({"paragraphs": ["oops", {"para_idx": 0, "elements": []}]})
+    with pytest.raises(LabelError):
+        parse_response(raw, PARAS)
+
+
+def test_non_dict_element_in_elements_raises_labelerror_not_attributeerror():
+    # Same failure mode one level deeper: a well-formed item whose "elements"
+    # list contains a non-dict entry. el.get(...) would otherwise raise.
+    raw = json.dumps({"paragraphs": [{"para_idx": 0, "elements": ["oops"]}]})
+    with pytest.raises(LabelError):
+        parse_response(raw, PARAS)
