@@ -15,6 +15,15 @@ def test_prompt_contains_guideline_examples_and_paragraphs():
     assert "DETALHAMENTO" in joined and "P2:" in joined
 
 
+def test_prompt_instructs_exact_character_quoting():
+    # sourceB text carries OCR corruption; the model must copy exact characters
+    # (typos included) or str.find drops the element. This instruction reduced
+    # the sourceB drop rate — guard it against silent removal.
+    system = build_prompt(PARAS)[0]["content"]
+    assert "OCR" in system and "caractere por caractere" in system
+    assert "NUNCA corrija" in system
+
+
 def test_parse_maps_quotes_to_offsets():
     raw = json.dumps({"paragraphs": [
         {"para_idx": 0, "elements": []},

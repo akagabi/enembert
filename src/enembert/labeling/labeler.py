@@ -28,7 +28,12 @@ def build_prompt(paragraphs: list[str]) -> list[dict]:
               "redações, seguindo este guia:\n\n" + GUIDELINE.read_text() +
               "\n\nResponda APENAS com JSON no formato "
               '{"paragraphs":[{"para_idx":0,"elements":[{"label":"AGENTE","quote":"..."}]}]} '
-              "usando citações VERBATIM do parágrafo. Exemplos:\n\n" + ex_txt)
+              "usando citações VERBATIM do parágrafo. "
+              "CRÍTICO: copie os caracteres EXATOS do parágrafo, incluindo erros de "
+              "digitação, acentuação errada, letras faltando ou palavras cortadas — o "
+              "texto pode conter erros de digitalização (OCR). NUNCA corrija a ortografia "
+              "nem complete palavras: a citação precisa bater caractere por caractere com "
+              "o parágrafo original, senão será descartada. Exemplos:\n\n" + ex_txt)
     return [{"role": "system", "content": system},
             {"role": "user", "content": numbered}]
 
