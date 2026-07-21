@@ -30,6 +30,22 @@ textual** dos elementos, como spans. Não julgamos qualidade nem nota.
 5. Parágrafos sem elementos (introdução, desenvolvimento): nenhum span — são negativos válidos.
 6. Em caso de dúvida entre dois rótulos, escolher pelo marcador (preposição/conjunção); sem
    marcador, escolher pela função sintática predominante.
+7. **Propostas INDIRETAS contam — este é o erro mais comum.** Nem toda proposta usa o molde
+   "deve/cabe a … por meio de … a fim de". Redações mais fracas quase nunca usam. Marque
+   também:
+   - **ação nominalizada**, sem verbo modal: "campanhas educativas nas escolas",
+     "controle do tráfico", "programas de reinserção social";
+   - **proposta avaliativa ou condicional**: "seriam eficazes", "é importante que",
+     "é necessário investir em…";
+   - **MEIO sem marcador**: "conduzidos por psicólogos", "com apoio das universidades",
+     "feitas em parceria com ONGs";
+   - **EFEITO sem marcador**: "garantindo que os dependentes recebam acompanhamento",
+     "assim, o problema diminui";
+   - **proposta sem AGENTE explícito**: marque os outros elementos normalmente e deixe
+     AGENTE ausente — não invente um agente que não está escrito.
+   A ausência do marcador não impede a marcação; ela só torna o elemento mais difícil de
+   ver. Só NÃO marque quando não houver proposta alguma — um fecho puramente retórico
+   ("os problemas são muitos, assim como suas soluções") não contém elemento nenhum.
 
 ## Exemplos trabalhados
 

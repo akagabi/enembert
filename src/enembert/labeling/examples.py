@@ -22,4 +22,21 @@ EXAMPLES = [
      "elements": [
         {"label": "AGENTE", "quote": "a sociedade"},
         {"label": "ACAO", "quote": "refletir sobre seus hábitos"}]},
+    # Proposta INDIRETA: sem "deve/cabe a", MEIO e EFEITO sem os marcadores clássicos.
+    # Redações medianas escrevem assim — o rotulador precisa enxergar estes casos.
+    {"paragraph": ("É urgente que o poder público invista em programas de reinserção social "
+                   "conduzidos por psicólogos e assistentes sociais, garantindo que os "
+                   "dependentes recebam acompanhamento contínuo."),
+     "elements": [
+        {"label": "AGENTE", "quote": "o poder público"},
+        {"label": "ACAO", "quote": "invista em programas de reinserção social"},
+        {"label": "MEIO", "quote": "conduzidos por psicólogos e assistentes sociais"},
+        {"label": "EFEITO", "quote": "garantindo que os dependentes recebam acompanhamento contínuo"}]},
+    # Proposta NOMINALIZADA e SEM agente explícito: marcar o que existe, não inventar AGENTE.
+    {"paragraph": ("Campanhas educativas nas escolas, realizadas em parceria com universidades "
+                   "públicas, seriam eficazes para diminuir o preconceito contra essas famílias."),
+     "elements": [
+        {"label": "ACAO", "quote": "Campanhas educativas nas escolas"},
+        {"label": "MEIO", "quote": "realizadas em parceria com universidades públicas"},
+        {"label": "EFEITO", "quote": "para diminuir o preconceito contra essas famílias"}]},
 ]
