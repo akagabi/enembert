@@ -38,18 +38,7 @@ export interface C5Estimate {
   totalLo: number;
   /** Historical total-score p90 for essays that landed in the `c5` band. */
   totalHi: number;
-  /**
-   * True when the input looks like a conclusion-only / very short text. The C5
-   * estimator's accuracy (QWK 0.68) was measured on FULL essays and leans partly
-   * on length/development, which don't transfer to a short conclusion. When true,
-   * the UI should ask for the full essay instead of showing a misleading number.
-   */
-  tooShort: boolean;
 }
-
-/** Below this the estimate is unreliable (training essays are ~1500+ chars, 4-5 paragraphs). */
-const MIN_CHARS_FOR_SCORE = 800;
-const MIN_PARAS_FOR_SCORE = 3;
 
 const MODEL_URL = '/score_model.json';
 
@@ -79,11 +68,7 @@ export function loadScoreModel(): Promise<ScoreModel> {
   return modelPromise;
 }
 
-function buildFeatures(
-  spansPerParagraph: TagSpan[][],
-  essayText: string,
-  nParagraphs: number,
-): number[] {
+function buildFeatures(spansPerParagraph: TagSpan[][]): number[] {
   const found = new Set<Element>();
   let nSpans = 0;
   for (const spans of spansPerParagraph) {
@@ -93,13 +78,11 @@ function buildFeatures(
     }
   }
   const hasFlags = ELEMENTS.map((e) => (found.has(e) ? 1 : 0));
-  const nElements = found.size;
-  const lenOver2000 = Math.min(essayText.length / 2000, 3);
-  const parasOver5 = Math.min(nParagraphs / 5, 3);
-  // Must match model.features order exactly:
-  // has_AGENTE, has_ACAO, has_MEIO, has_EFEITO, has_DETALHAMENTO,
-  // n_elements, n_spans, len_over_2000, paras_over_5
-  return [...hasFlags, nElements, nSpans, lenOver2000, parasOver5];
+  // Must match model.features order exactly (element-based only — essay length was
+  // deliberately dropped because it dominated the model and made a good short essay
+  // score low; the estimate now comes from the intervention content):
+  // has_AGENTE, has_ACAO, has_MEIO, has_EFEITO, has_DETALHAMENTO, n_elements, n_spans
+  return [...hasFlags, found.size, nSpans];
 }
 
 function softmax(logits: number[]): number[] {
@@ -137,16 +120,12 @@ function contiguousRange(probs: number[], centerIdx: number, targetMass: number)
  * Estimates Competência 5 from the whole essay's tagger output.
  * Requires `loadScoreModel()` to have resolved at least once before calling.
  */
-export function estimateC5(
-  spansPerParagraph: TagSpan[][],
-  essayText: string,
-  nParagraphs: number,
-): C5Estimate {
+export function estimateC5(spansPerParagraph: TagSpan[][]): C5Estimate {
   if (!cachedModel) {
     throw new Error('score model not loaded — call and await loadScoreModel() first');
   }
   const model = cachedModel;
-  const x = buildFeatures(spansPerParagraph, essayText, nParagraphs);
+  const x = buildFeatures(spansPerParagraph);
 
   const logits = model.coef.map(
     (row, c) => model.intercept[c] + row.reduce((sum, w, j) => sum + w * x[j], 0),
@@ -169,7 +148,5 @@ export function estimateC5(
     rangeHi: model.classes[hiIdx],
     totalLo: range.p10,
     totalHi: range.p90,
-    tooShort:
-      essayText.trim().length < MIN_CHARS_FOR_SCORE || nParagraphs < MIN_PARAS_FOR_SCORE,
   };
 }
