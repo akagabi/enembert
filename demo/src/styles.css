@@ -1,0 +1,639 @@
+/* enemBERT demo — "highlighter on paper" study aid.
+   Design commits to one idea: the tool is a highlighter, not a grader. Every
+   accent, from the marker colors to the ruled textarea, reinforces that. */
+
+:root {
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Karla', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --bg: #faf5ea;
+  --bg-alt: #f2ead9;
+  --bg-card: #fffdf8;
+  --ink: #2a2117;
+  --ink-soft: #6b5f4d;
+  --rule: #e3d7bd;
+  --border-strong: #8c7a56;
+  --accent: #b0430b;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6ded0;
+  --focus: #b0430b;
+
+  --ok: #2f6f4f;
+  --warn: #9a5a00;
+
+  /* The 5 intervention elements — literal highlighter-marker colors.
+     Text inside a mark is always dark ink, regardless of page theme:
+     that's how highlighters actually work under any light. */
+  --el-agente: #ffb199;
+  --el-agente-ink: #4a0f02;
+  --el-acao: #ffd166;
+  --el-acao-ink: #3d2b00;
+  --el-meio: #8fe3d3;
+  --el-meio-ink: #00352c;
+  --el-efeito: #c3b8ff;
+  --el-efeito-ink: #211257;
+  --el-detalhamento: #ffb8d9;
+  --el-detalhamento-ink: #4a0026;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1712;
+    --bg-alt: #241f18;
+    --bg-card: #221d16;
+    --ink: #f3ead9;
+    --ink-soft: #c9b8a0;
+    --rule: #3a3226;
+    --border-strong: #7d715a;
+    --accent: #ffb199;
+    --accent-ink: #1b1712;
+    --accent-soft: #332a1d;
+    --focus: #ffb199;
+
+    --ok: #7ed6ab;
+    --warn: #ffcf7a;
+
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 1.5px 1.5px, color-mix(in srgb, var(--ink) 6%, transparent) 1px, transparent 0),
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 39px,
+      color-mix(in srgb, var(--ink) 4%, transparent) 40px
+    );
+  background-size: 22px 22px, 100% 40px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--el-acao);
+  color: var(--el-acao-ink);
+}
+
+a {
+  color: var(--accent);
+}
+
+.wrap {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 5rem;
+}
+
+/* ---------- Header ---------- */
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 1.1rem;
+}
+
+.eyebrow .mark-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+  background: var(--el-acao);
+  transform: rotate(-8deg);
+  flex: none;
+}
+
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  margin-bottom: 1.4rem;
+}
+
+.privacy-badge svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  stroke: var(--accent);
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4.4vw, 2.7rem);
+  line-height: 1.15;
+  margin: 0 0 0.9rem;
+  color: var(--ink);
+}
+
+h1 .swipe {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--el-acao) 65%, transparent) 0.35em,
+    transparent 0.35em
+  );
+  padding: 0 0.05em;
+}
+
+.lede {
+  font-size: 1.09rem;
+  color: var(--ink-soft);
+  max-width: 42rem;
+  margin: 0 0 1.6rem;
+}
+
+/* ---------- Disclaimer callout ---------- */
+
+.disclaimer {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  margin-bottom: 2.2rem;
+}
+
+.disclaimer svg {
+  flex: none;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin-top: 0.15rem;
+  stroke: var(--accent);
+}
+
+.disclaimer p {
+  margin: 0;
+  font-size: 0.96rem;
+  color: var(--ink);
+}
+
+.disclaimer strong {
+  font-weight: 700;
+}
+
+/* ---------- Legend ---------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.legend .swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  flex: none;
+}
+
+/* ---------- Form ---------- */
+
+form {
+  margin-bottom: 0.6rem;
+}
+
+label.field-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+textarea {
+  width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.85rem;
+  padding: 0.7rem 1rem;
+  color: var(--ink);
+  background: var(--bg-card);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(1.85rem - 1px),
+    var(--rule) 1.85rem
+  );
+  border: 1.5px solid var(--border-strong);
+  border-radius: 10px;
+  outline-offset: 2px;
+}
+
+textarea::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.85;
+}
+
+textarea:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+.btn-retry:focus-visible {
+  outline: 2.5px solid var(--focus);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+button#go {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.4rem;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+button#go:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 55%, black 10%);
+}
+
+button#go:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+button#go:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status-line {
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-line .dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  flex: none;
+}
+
+.status-line.ready .dot {
+  background: var(--ok);
+}
+
+.status-line.error {
+  color: var(--warn);
+}
+
+.status-line.error .dot {
+  background: var(--warn);
+}
+
+.progress-track {
+  width: 100%;
+  max-width: 20rem;
+  height: 0.4rem;
+  background: var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width 200ms ease;
+}
+
+.field-warning {
+  color: var(--warn);
+  font-size: 0.9rem;
+  margin-top: 0.6rem;
+}
+
+.btn-retry {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+/* ---------- Results ---------- */
+
+.results {
+  margin-top: 2.2rem;
+}
+
+.results h2,
+.verdict h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  margin: 0 0 0.9rem;
+}
+
+.empty-state {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 1.6rem 1.4rem;
+  color: var(--ink-soft);
+  background: var(--bg-alt);
+  font-size: 0.98rem;
+}
+
+.essay-output p {
+  margin: 0 0 1.1rem;
+  font-size: 1.02rem;
+  line-height: 1.9;
+}
+
+mark {
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
+  padding: 0.05em 0.15em;
+  color: inherit;
+  font-weight: 500;
+}
+
+mark.el-AGENTE {
+  background: var(--el-agente);
+  color: var(--el-agente-ink);
+}
+mark.el-ACAO {
+  background: var(--el-acao);
+  color: var(--el-acao-ink);
+}
+mark.el-MEIO {
+  background: var(--el-meio);
+  color: var(--el-meio-ink);
+}
+mark.el-EFEITO {
+  background: var(--el-efeito);
+  color: var(--el-efeito-ink);
+}
+mark.el-DETALHAMENTO {
+  background: var(--el-detalhamento);
+  color: var(--el-detalhamento-ink);
+}
+
+mark.hedge {
+  background: color-mix(in srgb, currentColor 0%, transparent);
+  border-bottom: 2px dashed currentColor;
+  border-radius: 3px 3px 0 0;
+  padding-bottom: 0.02em;
+}
+
+mark.el-AGENTE.hedge {
+  background: color-mix(in srgb, var(--el-agente) 40%, var(--bg-card));
+  color: var(--el-agente-ink);
+}
+mark.el-ACAO.hedge {
+  background: color-mix(in srgb, var(--el-acao) 40%, var(--bg-card));
+  color: var(--el-acao-ink);
+}
+mark.el-MEIO.hedge {
+  background: color-mix(in srgb, var(--el-meio) 40%, var(--bg-card));
+  color: var(--el-meio-ink);
+}
+mark.el-EFEITO.hedge {
+  background: color-mix(in srgb, var(--el-efeito) 40%, var(--bg-card));
+  color: var(--el-efeito-ink);
+}
+mark.el-DETALHAMENTO.hedge {
+  background: color-mix(in srgb, var(--el-detalhamento) 40%, var(--bg-card));
+  color: var(--el-detalhamento-ink);
+}
+
+.hedge-note {
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  margin-top: 0.6rem;
+}
+
+.hedge-note .sample {
+  display: inline-block;
+  border-bottom: 2px dashed var(--ink-soft);
+  padding-bottom: 0.02em;
+}
+
+/* ---------- Verdict panel ---------- */
+
+.verdict {
+  margin-top: 2.4rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.8rem;
+}
+
+.checklist {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0 0 1.4rem;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist details {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.checklist summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+}
+
+.checklist summary::-webkit-details-marker {
+  display: none;
+}
+
+.checklist summary .chip {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-size: 0.95rem;
+  border: 2px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+.checklist details.found summary .chip {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: white;
+}
+
+.checklist details.found.weak summary .chip {
+  background: transparent;
+  border: 2px dashed var(--ok);
+  color: var(--ok);
+}
+
+.checklist summary .swatch-inline {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  flex: none;
+}
+
+.checklist summary .name {
+  flex: 1;
+}
+
+.checklist summary .tag {
+  font-weight: 500;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.checklist summary .caret {
+  color: var(--ink-soft);
+  transition: transform 150ms ease;
+  flex: none;
+}
+
+.checklist details[open] summary .caret {
+  transform: rotate(90deg);
+}
+
+.checklist .details-body {
+  padding: 0 1rem 1rem 3.15rem;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.checklist .details-body p {
+  margin: 0 0 0.5rem;
+}
+
+.checklist .definition {
+  color: var(--ink);
+}
+
+.checklist .example {
+  font-style: italic;
+}
+
+.checklist .attribution {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-top: 0.5rem;
+}
+
+.checklist .found-quotes {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.checklist .found-quotes li {
+  margin-bottom: 0.2rem;
+}
+
+/* ---------- Limits note ---------- */
+
+.limits-note {
+  background: var(--bg-alt);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.limits-note strong {
+  color: var(--ink);
+}
+
+/* ---------- Footer ---------- */
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+
+footer p {
+  margin: 0 0 0.3rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (max-width: 30rem) {
+  .wrap {
+    padding: 1.75rem 1rem 4rem;
+  }
+}
