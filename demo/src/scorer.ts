@@ -38,7 +38,18 @@ export interface C5Estimate {
   totalLo: number;
   /** Historical total-score p90 for essays that landed in the `c5` band. */
   totalHi: number;
+  /**
+   * True when the input looks like a conclusion-only / very short text. The C5
+   * estimator's accuracy (QWK 0.68) was measured on FULL essays and leans partly
+   * on length/development, which don't transfer to a short conclusion. When true,
+   * the UI should ask for the full essay instead of showing a misleading number.
+   */
+  tooShort: boolean;
 }
+
+/** Below this the estimate is unreliable (training essays are ~1500+ chars, 4-5 paragraphs). */
+const MIN_CHARS_FOR_SCORE = 800;
+const MIN_PARAS_FOR_SCORE = 3;
 
 const MODEL_URL = '/score_model.json';
 
@@ -158,5 +169,7 @@ export function estimateC5(
     rangeHi: model.classes[hiIdx],
     totalLo: range.p10,
     totalHi: range.p90,
+    tooShort:
+      essayText.trim().length < MIN_CHARS_FOR_SCORE || nParagraphs < MIN_PARAS_FOR_SCORE,
   };
 }

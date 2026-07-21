@@ -41,7 +41,7 @@ app.innerHTML = `
       <p class="eyebrow"><span class="mark-dot" aria-hidden="true"></span>enemBERT · ferramenta de estudo (não oficial)</p>
       <span class="privacy-badge">${ICON_LOCK}sua redação não sai do seu navegador</span>
       <h1>Confira se sua proposta de intervenção tem os <span class="swipe">5 elementos</span></h1>
-      <p class="lede">Cole a conclusão da sua redação e veja, marcado no próprio texto, quais dos 5 elementos da proposta de intervenção — agente, ação, meio, efeito e detalhamento — o modelo encontrou.</p>
+      <p class="lede">Cole sua redação e veja, marcado no próprio texto, quais dos 5 elementos da proposta de intervenção — agente, ação, meio, efeito e detalhamento — o modelo encontrou. Com a redação completa, ele também estima a Competência 5.</p>
       <div class="disclaimer">
         ${ICON_INFO}
         <p><strong>Isto não é uma nota nem uma correção.</strong> É um apoio de estudo — confirme sempre com seu professor.</p>
@@ -59,7 +59,7 @@ app.innerHTML = `
       <textarea
         id="essay"
         rows="10"
-        placeholder="Cole aqui a conclusão (ou a redação inteira) — por exemplo: &quot;Portanto, cabe ao Ministério da Educação, órgão responsável pela política educacional do país, criar campanhas de conscientização nas escolas, por meio de parcerias com ONGs, a fim de reduzir a evasão escolar entre os jovens.&quot;"
+        placeholder="Cole aqui sua redação completa (a conclusão sozinha marca os elementos, mas a estimativa de nota precisa do texto inteiro)."
       ></textarea>
       <div class="form-row">
         <button id="go" type="submit" disabled>Encontrar elementos</button>
@@ -232,6 +232,21 @@ function c5RangePhrase(est: C5Estimate): string {
 }
 
 function renderScorePanelHtml(est: C5Estimate): string {
+  // The C5 estimate needs the full essay (its accuracy leans partly on length
+  // and development). For a short/conclusion-only paste, ask for the whole essay
+  // rather than show a number that would come out misleadingly low.
+  if (est.tooShort) {
+    return `
+      <div class="score-disclaimer">
+        ${ICON_INFO}
+        <p>
+          <strong>Cole a redação completa para uma estimativa.</strong>
+          A estimativa de nota considera o desenvolvimento do texto inteiro, não só a conclusão —
+          com apenas a conclusão o número sairia baixo demais. Os elementos acima já foram marcados normalmente.
+        </p>
+      </div>
+    `;
+  }
   const lastIdx = C5_BANDS.length - 1;
   const loIdx = C5_BANDS.indexOf(est.rangeLo as (typeof C5_BANDS)[number]);
   const hiIdx = C5_BANDS.indexOf(est.rangeHi as (typeof C5_BANDS)[number]);
