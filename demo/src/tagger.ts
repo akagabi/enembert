@@ -80,6 +80,9 @@ export async function tagParagraph(paragraph: string): Promise<TagSpan[]> {
     const word = (e.word ?? '').trim();
     if (label == null || !isElement(label) || !word) continue;
     if (!/\p{L}/u.test(word)) continue; // punctuation-only noise, e.g. a stray ","
+    // A one-or-two-character "element" is model noise, never a real intervention
+    // element (external testing surfaced a stray AGENTE span on the letter "a").
+    if (word.length < 3) continue;
     const start = paragraph.indexOf(word, cursor);
     if (start < 0) continue;
     const end = start + word.length;
