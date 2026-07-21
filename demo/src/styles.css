@@ -47,35 +47,9 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #12161f;
-    --bg-alt: #191f2a;
-    --bg-card: #1c2330;
-    --ink: #eef1f6;
-    --ink-soft: #a7b0bf;
-    --rule: #2b3342;
-    --border-strong: #454e5e;
-    --accent: #8fa0ff;
-    --accent-ink: #10142a;
-    --accent-soft: #232a42;
-    --focus: #8fa0ff;
-
-    --ok: #4fd69c;
-    --warn: #ff7a63;
-
-    --hedge-mix: 70%;
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 18px 40px -18px rgba(0, 0, 0, 0.65);
-
-    color-scheme: dark;
-  }
-}
-
-/* Explicit theme overrides, for a future/embedding theme toggle that sets
-   data-theme on the root — works in both directions regardless of the
-   visitor's OS preference. */
+/* The page defaults to the LIGHT theme for everyone, deliberately: it should
+   read bright and clean regardless of the visitor's OS setting. Dark is opt-in
+   through the header toggle, which sets data-theme on the root (persisted). */
 :root[data-theme='light'] {
   --bg: #f7f8fb;
   --bg-alt: #eef1f5;
@@ -836,4 +810,26 @@ footer p {
   .score-hero {
     gap: 0.9rem;
   }
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.34rem 0.8rem;
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }

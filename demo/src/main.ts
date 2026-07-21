@@ -45,6 +45,9 @@ app.innerHTML = `
       <div class="notice-row">
         <span class="notice-chip">${ICON_LOCK}sua redação não sai do seu navegador</span>
         <span class="notice-chip">${ICON_INFO}não é uma nota nem uma correção</span>
+        <button id="theme-toggle" type="button" class="theme-toggle" aria-label="Alternar tema claro/escuro">
+          <span aria-hidden="true">◐</span><span id="theme-label">escuro</span>
+        </button>
       </div>
     </header>
 
@@ -388,3 +391,31 @@ void loadScoreModel().catch((err) => {
 });
 
 void initModel();
+
+// ---------- theme toggle (page defaults to light; dark is opt-in) ----------
+
+const themeToggle = document.querySelector<HTMLButtonElement>('#theme-toggle')!;
+const themeLabel = document.querySelector<HTMLSpanElement>('#theme-label')!;
+
+function applyTheme(theme: 'light' | 'dark'): void {
+  document.documentElement.setAttribute('data-theme', theme);
+  themeLabel.textContent = theme === 'dark' ? 'claro' : 'escuro';
+  try {
+    localStorage.setItem('enembert-theme', theme);
+  } catch {
+    /* storage unavailable (private mode) — the toggle still works for this visit */
+  }
+}
+
+let storedTheme: string | null = null;
+try {
+  storedTheme = localStorage.getItem('enembert-theme');
+} catch {
+  /* ignore */
+}
+applyTheme(storedTheme === 'dark' ? 'dark' : 'light');
+
+themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
