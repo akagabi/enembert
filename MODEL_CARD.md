@@ -98,6 +98,15 @@ Treinado sobre `kamel-usp/aes_enem_dataset` (apache-2.0), 3.792 redações únic
 - F1 exact é bem menor que F1 overlap (micro 0.45 vs 0.58) — o modelo costuma acertar a região certa, mas não sempre o limite exato do trecho.
 - A distribuição de notas C5 do conjunto de teste não reflete a do corpus real (superrepresenta notas altas); os números acima são um diagnóstico por faixa de nota, não uma estimativa de acurácia populacional.
 
+### Estimativa de Competência 5 (no demo)
+
+O demo web inclui, como recurso opcional, uma estimativa de nota de Competência 5. Isto **não** é parte do modelo `akagabi/enemBERT` publicado aqui — é um modelo separado, pequeno, que roda só no navegador, construído em cima da saída do tagger. A afirmação da seção "O que faz e o que não faz" continua valendo: o tagger em si nunca produz uma pontuação.
+
+- **Como funciona:** uma regressão logística multinomial pequena sobre quais dos 5 elementos o tagger encontrou, quantos elementos distintos e quantos trechos — nada de texto da redação, nada enviado a servidor.
+- **Contra a nota real**, no conjunto de teste retido e disjunto por prompt: QWK (quadratic weighted kappa) = **0.524** — concordância moderada.
+- **Nunca mostra a nota total (0–1000).** Prever o total diretamente chegou a QWK 0.60, mas com erro médio de ±223 pontos — impreciso demais para virar um número. Em vez disso, o demo mostra a nota estimada de C5 como faixa, ao lado da faixa histórica real de nota total de redações que caíram naquela faixa de C5, rotulado como "estimativa aproximada — não é a nota oficial".
+- **Um quase-erro que vale registrar:** uma versão anterior incluía o comprimento da redação como variável e chegava a QWK 0.681, mas o comprimento passou a dominar o modelo — uma redação curta e bem escrita com os 5 elementos presentes tirava C5=40 só por ser curta, e a mesma coisa numa redação mais longa tirava 200. O comprimento foi removido; o modelo ficou em 0.524, honesto e estável em vez de mais preciso e enganoso.
+
 ### Créditos
 
 - Dados: [`kamel-usp/aes_enem_dataset`](https://huggingface.co/datasets/kamel-usp/aes_enem_dataset) (apache-2.0).
@@ -186,6 +195,15 @@ Trained on `kamel-usp/aes_enem_dataset` (apache-2.0), 3,792 unique essays overal
 - About 86% of one of the corpus's three source configs (`sourceB`, roughly 85% of all essays) arrived as a single unbroken block of text with no paragraph breaks, due to upstream OCR/crawl damage. Those essays are harder for both the labeler and the model.
 - Exact-span F1 is noticeably lower than overlap F1 (micro 0.45 vs 0.58) — the model usually finds the right region but not always the exact boundary.
 - The gold set's C5 grade distribution does not match the real corpus (it over-represents high-scoring essays); the numbers above are a diagnostic across score bands, not a population-level accuracy estimate.
+
+### Competência 5 score estimate (in the demo)
+
+The web demo includes an optional Competência 5 score estimate. This is **not** part of the `akagabi/enemBERT` model published here — it's a separate, small model that runs only in the browser, built on top of the tagger's output. The claim in "What it does and what it does not" still holds: the tagger itself never produces a score.
+
+- **How it works:** a small multinomial logistic regression over which of the 5 elements the tagger found, how many distinct elements, and how many spans — no essay text, nothing sent to a server.
+- **Against the real grade**, on the held-out, prompt-disjoint gold set: QWK (quadratic weighted kappa) = **0.524**, moderate agreement.
+- **Never shows the total (0-1000).** Predicting the total directly reached QWK 0.60 but with an average error of ±223 points, too imprecise to show as a number. Instead the demo shows the estimated C5 as a range, next to the real historical range of total scores for essays that landed in that C5 band, labeled "estimativa aproximada — não é a nota oficial" (approximate estimate, not the official grade).
+- **A near-miss worth recording:** an earlier version added essay length as a feature and reached QWK 0.681, but length ended up dominating the model — a well-written short essay with all 5 elements scored C5=40 just for being short, and the same elements in a longer essay scored 200. Length was dropped; the model settled at 0.524, honest and stable instead of sharper and misleading.
 
 ### Credits
 
