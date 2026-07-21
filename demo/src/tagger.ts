@@ -11,7 +11,8 @@ import {
 
 // Dev: load weights bundled under demo/public/models/ (gitignored, copied from
 // runs/model/onnx/ by the build steps). Prod: fetch the published model from HF.
-env.allowRemoteModels = !import.meta.env.DEV;
+env.allowLocalModels = import.meta.env.DEV;   // dev: load bundled weights from /models/
+env.allowRemoteModels = !import.meta.env.DEV;  // prod: stream from HF
 env.localModelPath = '/models/';
 
 const MODEL_ID = import.meta.env.DEV ? 'enembert' : 'akagabi/enemBERT';
@@ -67,17 +68,23 @@ export async function tagParagraph(paragraph: string): Promise<TagSpan[]> {
   if (!pipe) throw new Error('modelo ainda não carregado');
   if (!paragraph) return [];
   const out = await pipe(paragraph, { aggregation_strategy: 'simple' });
+  // transformers.js does not return char offsets for this tokenizer, only the
+  // grouped `word` text. Recover offsets by locating each entity's text in the
+  // paragraph with a forward-moving cursor (verified exact on accented,
+  // punctuated ENEM text). Skip anything we can't place, or punctuation-only
+  // groups (occasional boundary noise), rather than mis-rendering.
   const spans: TagSpan[] = [];
+  let cursor = 0;
   for (const e of out) {
     const label = e.entity_group;
-    if (
-      label != null &&
-      isElement(label) &&
-      typeof e.start === 'number' &&
-      typeof e.end === 'number'
-    ) {
-      spans.push({ start: e.start, end: e.end, label, score: e.score });
-    }
+    const word = (e.word ?? '').trim();
+    if (label == null || !isElement(label) || !word) continue;
+    if (!/\p{L}/u.test(word)) continue; // punctuation-only noise, e.g. a stray ","
+    const start = paragraph.indexOf(word, cursor);
+    if (start < 0) continue;
+    const end = start + word.length;
+    cursor = end;
+    spans.push({ start, end, label, score: e.score });
   }
   return spans;
 }
