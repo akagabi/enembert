@@ -14,6 +14,7 @@ import { loadScoreModel, estimateC5, type C5Estimate } from './scorer';
 
 const ICON_LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const ICON_INFO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+const ICON_EDIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
 
 /** The 6 C5 bands the score model was trained on, low to high. */
 const C5_BANDS = [0, 40, 80, 120, 160, 200] as const;
@@ -39,70 +40,67 @@ app.innerHTML = `
   <div class="wrap">
     <header>
       <p class="eyebrow"><span class="mark-dot" aria-hidden="true"></span>enemBERT · ferramenta de estudo (não oficial)</p>
-      <span class="privacy-badge">${ICON_LOCK}sua redação não sai do seu navegador</span>
-      <h1>Confira se sua proposta de intervenção tem os <span class="swipe">5 elementos</span></h1>
-      <p class="lede">Cole a conclusão da sua redação e veja, marcado no próprio texto, quais dos 5 elementos da proposta de intervenção — agente, ação, meio, efeito e detalhamento — o modelo encontrou, com uma estimativa aproximada da Competência 5.</p>
-      <div class="disclaimer">
-        ${ICON_INFO}
-        <p><strong>Isto não é uma nota nem uma correção.</strong> É um apoio de estudo — confirme sempre com seu professor.</p>
+      <h1>Sua proposta de intervenção tem os <span class="swipe">5 elementos</span>?</h1>
+      <p class="lede">Cole o texto e veja, marcado, se agente, ação, meio, efeito e detalhamento aparecem — com uma estimativa da Competência 5.</p>
+      <div class="notice-row">
+        <span class="notice-chip">${ICON_LOCK}sua redação não sai do seu navegador</span>
+        <span class="notice-chip">${ICON_INFO}não é uma nota nem uma correção</span>
       </div>
-      <ul class="legend">
-        ${ELEMENTS.map(
-          (e) =>
-            `<li><span class="swatch" style="background:var(--el-${varName(e)})" aria-hidden="true"></span>${escapeHtml(ELEMENT_INFO[e].displayName)}</li>`,
-        ).join('')}
-      </ul>
     </header>
 
-    <form id="analyze-form" novalidate>
-      <label class="field-label" for="essay">Cole o texto da sua proposta de intervenção</label>
-      <textarea
-        id="essay"
-        rows="10"
-        placeholder="Cole aqui a conclusão (ou a redação inteira) — por exemplo: &quot;Portanto, cabe ao Ministério da Educação, órgão responsável pela política educacional do país, criar campanhas de conscientização nas escolas, por meio de parcerias com ONGs, a fim de reduzir a evasão escolar entre os jovens.&quot;"
-      ></textarea>
-      <div class="form-row">
-        <button id="go" type="submit" disabled>Encontrar elementos</button>
-        <div id="status" class="status-line">
-          <span class="dot" aria-hidden="true"></span>
-          <span id="status-text">carregando o modelo…</span>
+    <section class="workspace-card">
+      <form id="analyze-form" novalidate>
+        <label class="field-label" for="essay">Cole o texto da sua proposta de intervenção</label>
+        <textarea
+          id="essay"
+          rows="8"
+          placeholder="Cole aqui a conclusão (ou a redação inteira) — por exemplo: &quot;Portanto, cabe ao Ministério da Educação, órgão responsável pela política educacional do país, criar campanhas de conscientização nas escolas, por meio de parcerias com ONGs, a fim de reduzir a evasão escolar entre os jovens.&quot;"
+        ></textarea>
+        <div class="form-row">
+          <button id="go" type="submit" disabled>Encontrar elementos</button>
+          <div id="status" class="status-line">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="status-text">carregando o modelo…</span>
+          </div>
+          <button id="retry-btn" type="button" class="btn-retry" hidden>Tentar novamente</button>
         </div>
-        <button id="retry-btn" type="button" class="btn-retry" hidden>Tentar novamente</button>
+        <div id="progress-wrap" class="progress-track">
+          <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+        </div>
+        <p id="field-warning" class="field-warning" hidden>Cole o texto da sua redação antes de continuar.</p>
+        <p id="analyze-error" class="field-warning" hidden></p>
+      </form>
+
+      <div id="result-view" class="result-view" hidden>
+        <div class="result-toolbar">
+          <h2>Sua redação, marcada</h2>
+          <button id="edit-btn" type="button" class="btn-edit">${ICON_EDIT}editar / colar outra</button>
+        </div>
+
+        <section id="score-panel" class="score-panel" hidden aria-labelledby="score-heading">
+          <h2 id="score-heading">Estimativa <em>(aproximada)</em></h2>
+          <div id="score-body"></div>
+        </section>
+
+        <div id="output"></div>
+        <p id="hedge-note" class="hedge-note" hidden>
+          Trechos com <span class="sample">sublinhado tracejado</span> são casos em que o modelo teve baixa confiança —
+          vale conferir esses com mais atenção.
+        </p>
+
+        <section id="verdict" class="verdict" hidden>
+          <h2>Checklist dos 5 elementos</h2>
+          <ul class="checklist" id="checklist"></ul>
+          <p class="limits-note">
+            <strong>Sobre a confiabilidade:</strong> é a estimativa de um modelo, não uma verificação garantida — erra
+            mais em detalhamento e meio. Use como um segundo par de olhos, não como palavra final.
+          </p>
+        </section>
       </div>
-      <div id="progress-wrap" class="progress-track">
-        <div id="progress-fill" class="progress-fill" style="width:0%"></div>
-      </div>
-      <p id="field-warning" class="field-warning" hidden>Cole o texto da sua redação antes de continuar.</p>
-    </form>
-
-    <section class="results">
-      <h2>Sua redação, marcada</h2>
-      <div id="output"></div>
-      <p id="hedge-note" class="hedge-note" hidden>
-        Trechos com <span class="sample">sublinhado tracejado</span> são casos em que o modelo teve baixa confiança —
-        vale conferir esses com mais atenção.
-      </p>
-    </section>
-
-    <section id="verdict" class="verdict" hidden>
-      <h2>Checklist dos 5 elementos</h2>
-      <ul class="checklist" id="checklist"></ul>
-      <p class="limits-note">
-        <strong>Sobre a confiabilidade:</strong> a detecção é a estimativa de um modelo de linguagem treinado para
-        isso — não uma verificação garantida. Ela erra às vezes, principalmente em detalhamento e meio, que são os
-        elementos mais difíceis de reconhecer no texto. Use como um segundo par de olhos, não como palavra final.
-      </p>
-    </section>
-
-    <section id="score-panel" class="score-panel" hidden aria-labelledby="score-heading">
-      <span class="score-washi" aria-hidden="true"></span>
-      <h2 id="score-heading">Estimativa <em>(aproximada)</em></h2>
-      <div id="score-body"></div>
     </section>
 
     <footer>
-      <p>enemBERT é um projeto independente, não afiliado ao INEP/MEC.</p>
-      <p>Definições dos elementos adaptadas de ${RUBRIC_ATTRIBUTION}. Código aberto; o modelo roda localmente via transformers.js — nenhum texto é enviado a servidores.</p>
+      <p>enemBERT é um projeto independente, não afiliado ao INEP/MEC · definições adaptadas de ${RUBRIC_ATTRIBUTION} · roda localmente via transformers.js — nenhum texto é enviado a servidores.</p>
     </footer>
   </div>
 `;
@@ -120,20 +118,15 @@ const textarea = document.querySelector<HTMLTextAreaElement>('#essay')!;
 const output = document.querySelector<HTMLDivElement>('#output')!;
 const hedgeNote = document.querySelector<HTMLParagraphElement>('#hedge-note')!;
 const warning = document.querySelector<HTMLParagraphElement>('#field-warning')!;
+const analyzeError = document.querySelector<HTMLParagraphElement>('#analyze-error')!;
+const resultView = document.querySelector<HTMLDivElement>('#result-view')!;
+const editBtn = document.querySelector<HTMLButtonElement>('#edit-btn')!;
 const verdictSection = document.querySelector<HTMLElement>('#verdict')!;
 const checklistEl = document.querySelector<HTMLUListElement>('#checklist')!;
 const scorePanel = document.querySelector<HTMLElement>('#score-panel')!;
 const scoreBody = document.querySelector<HTMLDivElement>('#score-body')!;
 
 // ---------- rendering helpers ----------
-
-function emptyStateHtml(): string {
-  return `<div class="empty-state">Cole o texto acima e clique em "Encontrar elementos" para ver sua redação marcada aqui, elemento por elemento.</div>`;
-}
-
-function errorStateHtml(message: string): string {
-  return `<div class="empty-state status-line error"><span class="dot" aria-hidden="true"></span>${escapeHtml(message)}</div>`;
-}
 
 function renderParagraphHtml(paragraph: string, spans: TagSpan[]): { html: string; hedged: boolean } {
   let html = '';
@@ -188,6 +181,9 @@ function uniqueTexts(items: FoundQuote[]): string[] {
   return out.slice(0, 4);
 }
 
+// A compact inline row of 5 chips (not 5 stacked cards): each chip is a
+// pill showing found/not-found + the element's color + name, and expands
+// in place (native <details>) to reveal the definition/example/quotes.
 function renderChecklist(results: Record<Element, FoundQuote[]>): string {
   return ELEMENTS.map((e) => {
     const items = results[e];
@@ -210,14 +206,12 @@ function renderChecklist(results: Record<Element, FoundQuote[]>): string {
             <span class="chip" aria-hidden="true">${chip}</span>
             <span class="swatch-inline" style="background:var(--el-${varName(e)})" aria-hidden="true"></span>
             <span class="name">${escapeHtml(info.displayName)}</span>
-            <span class="tag">${tag}</span>
-            <span class="caret" aria-hidden="true">›</span>
           </summary>
           <div class="details-body">
+            <p class="state-tag">${tag}</p>
             <p class="definition">${escapeHtml(info.definition)}</p>
             <p class="example">${escapeHtml(info.example)}</p>
             ${quotesHtml}
-            <p class="attribution">Definição adaptada de ${RUBRIC_ATTRIBUTION}.</p>
           </div>
         </details>
       </li>`;
@@ -231,6 +225,9 @@ function c5RangePhrase(est: C5Estimate): string {
   return `em torno de ${est.c5} de 200 (provavelmente entre ${est.rangeLo} e ${est.rangeHi})`;
 }
 
+// The estimate as a bold, confident card: a big headline number up top
+// (the eye-catching element), the meter as visual backup, then the honest
+// framing (range, historical total, disclaimer) below it.
 function renderScorePanelHtml(est: C5Estimate): string {
   const lastIdx = C5_BANDS.length - 1;
   const loIdx = C5_BANDS.indexOf(est.rangeLo as (typeof C5_BANDS)[number]);
@@ -241,6 +238,16 @@ function renderScorePanelHtml(est: C5Estimate): string {
   const pointPct = (pointIdx / lastIdx) * 100;
 
   return `
+    <div class="score-hero">
+      <p class="score-num"><span class="score-num-val">${est.c5}</span><span class="score-num-max">/200</span></p>
+      <div class="score-hero-text">
+        <p class="score-line">Competência 5: <strong>${c5RangePhrase(est)}</strong>.</p>
+        <p class="score-total">
+          Redações assim costumam ter nota total entre <strong>${est.totalLo}</strong> e
+          <strong>${est.totalHi}</strong> (de 1000).
+        </p>
+      </div>
+    </div>
     <div
       class="score-meter"
       role="img"
@@ -248,24 +255,17 @@ function renderScorePanelHtml(est: C5Estimate): string {
     >
       <div class="score-meter-track">
         <div class="score-meter-range" style="left:${leftPct}%;width:${widthPct}%"></div>
-        <div class="score-meter-point" style="left:${pointPct}%">
-          <span class="score-meter-point-label">${est.c5}</span>
-        </div>
+        <div class="score-meter-point" style="left:${pointPct}%"></div>
       </div>
       <div class="score-meter-ticks">
         ${C5_BANDS.map((c) => `<span>${c}</span>`).join('')}
       </div>
     </div>
-    <p class="score-line">Competência 5: <strong>${c5RangePhrase(est)}</strong>.</p>
-    <p class="score-total">
-      Redações com uma proposta assim costumam ter nota total entre
-      <strong>${est.totalLo}</strong> e <strong>${est.totalHi}</strong> (de 1000).
-    </p>
     <div class="score-disclaimer">
       ${ICON_INFO}
       <p>
         <strong>Estimativa aproximada — não é a nota oficial.</strong>
-        O resultado final depende de fatores que este modelo não avalia (gramática, argumentação, coesão).
+        Não avalia gramática, argumentação ou coesão.
       </p>
     </div>
   `;
@@ -294,12 +294,9 @@ async function initModel(): Promise<void> {
   } catch (err) {
     console.error('falha ao carregar o modelo enemBERT:', err);
     statusLine.classList.add('error');
-    statusText.textContent = 'não foi possível carregar o modelo';
+    statusText.textContent = 'não foi possível carregar o modelo — verifique sua conexão';
     progressWrap.hidden = true;
     retryBtn.hidden = false;
-    output.innerHTML = errorStateHtml(
-      'O modelo não carregou. Verifique sua conexão e tente novamente — sua redação continua segura, nada foi enviado.',
-    );
   }
 }
 
@@ -307,9 +304,19 @@ retryBtn.addEventListener('click', () => {
   void initModel();
 });
 
-// ---------- analysis ----------
+// ---------- view switching ----------
+// Simplest, most robust way to avoid showing the essay twice: the marked-up
+// essay replaces the textarea view in place (same card) rather than living
+// in a separate section further down the page. "editar" just swaps back —
+// the textarea still holds the original text, nothing is lost.
 
-output.innerHTML = emptyStateHtml();
+editBtn.addEventListener('click', () => {
+  resultView.hidden = true;
+  form.hidden = false;
+  textarea.focus();
+});
+
+// ---------- analysis ----------
 
 form.addEventListener('submit', (ev) => {
   ev.preventDefault();
@@ -326,6 +333,7 @@ async function runAnalysis(): Promise<void> {
     return;
   }
   warning.hidden = true;
+  analyzeError.hidden = true;
 
   goBtn.disabled = true;
   const originalLabel = goBtn.textContent ?? 'Encontrar elementos';
@@ -356,14 +364,17 @@ async function runAnalysis(): Promise<void> {
       console.error('falha ao estimar a Competência 5:', scoreErr);
       scorePanel.hidden = true;
     }
+
+    form.hidden = true;
+    resultView.hidden = false;
   } catch (err) {
     console.error('falha ao analisar o texto:', err);
-    output.innerHTML = errorStateHtml(
-      'Não foi possível analisar o texto agora. Tente novamente em instantes.',
-    );
+    analyzeError.textContent = 'Não foi possível analisar o texto agora. Tente novamente em instantes.';
+    analyzeError.hidden = false;
     hedgeNote.hidden = true;
     verdictSection.hidden = true;
     scorePanel.hidden = true;
+    resultView.hidden = true;
   } finally {
     goBtn.disabled = false;
     goBtn.textContent = originalLabel;
