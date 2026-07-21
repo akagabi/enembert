@@ -611,6 +611,155 @@ mark.el-DETALHAMENTO.hedge {
   color: var(--ink);
 }
 
+/* ---------- Score panel ----------
+   A separate "estimate slip" pinned below the checklist — visually distinct
+   on purpose: dashed card, a little washi-tape strip, a slight tilt. It
+   reads as an attached note, not a certificate or a report card. */
+
+.score-panel {
+  position: relative;
+  margin-top: 2.6rem;
+  background: var(--bg-card);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 1.9rem 1.6rem 1.6rem;
+  transform: rotate(-0.35deg);
+}
+
+.score-washi {
+  position: absolute;
+  top: -0.8rem;
+  left: 2rem;
+  width: 4.4rem;
+  height: 1.5rem;
+  background: color-mix(in srgb, var(--el-acao) 75%, transparent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 20%, transparent);
+  transform: rotate(-3.5deg);
+}
+
+.score-panel h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  margin: 0 0 1.1rem;
+  color: var(--ink);
+}
+
+.score-panel h2 em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.score-meter {
+  margin: 0 0 1.3rem;
+}
+
+.score-meter-track {
+  position: relative;
+  height: 0.55rem;
+  background: var(--rule);
+  border-radius: 999px;
+  margin: 1.6rem 0 0.55rem;
+}
+
+.score-meter-range {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--el-acao) 80%, var(--accent) 20%);
+  border-radius: inherit;
+}
+
+.score-meter-point {
+  position: absolute;
+  top: 50%;
+  width: 1.05rem;
+  height: 1.05rem;
+  background: var(--accent);
+  border: 2.5px solid var(--bg-card);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--border-strong);
+  transform: translate(-50%, -50%);
+}
+
+.score-meter-point-label {
+  position: absolute;
+  bottom: 1.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 700;
+  font-size: 0.78rem;
+  line-height: 1;
+  padding: 0.22rem 0.45rem;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.score-meter-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.score-line {
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 0 0 0.55rem;
+}
+
+.score-line strong {
+  font-weight: 700;
+}
+
+.score-total {
+  font-size: 0.93rem;
+  color: var(--ink-soft);
+  margin: 0 0 1.3rem;
+}
+
+.score-total strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.score-disclaimer {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--warn) 12%, var(--bg-card));
+  border: 1.5px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: 10px;
+  padding: 0.9rem 1.05rem;
+}
+
+.score-disclaimer svg {
+  flex: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-top: 0.15rem;
+  stroke: var(--warn);
+}
+
+.score-disclaimer p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.score-disclaimer strong {
+  font-weight: 700;
+}
+
+@media (max-width: 30rem) {
+  .score-panel {
+    padding: 1.7rem 1.15rem 1.4rem;
+  }
+}
+
 /* ---------- Footer ---------- */
 
 footer {

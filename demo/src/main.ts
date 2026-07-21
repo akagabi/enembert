@@ -10,9 +10,13 @@ import {
   type Element,
 } from './tagger';
 import { ELEMENT_INFO, RUBRIC_ATTRIBUTION } from './rubric';
+import { loadScoreModel, estimateC5, type C5Estimate } from './scorer';
 
 const ICON_LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const ICON_INFO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+
+/** The 6 C5 bands the score model was trained on, low to high. */
+const C5_BANDS = [0, 40, 80, 120, 160, 200] as const;
 
 function escapeHtml(s: string): string {
   return s
@@ -90,6 +94,12 @@ app.innerHTML = `
       </p>
     </section>
 
+    <section id="score-panel" class="score-panel" hidden aria-labelledby="score-heading">
+      <span class="score-washi" aria-hidden="true"></span>
+      <h2 id="score-heading">Estimativa <em>(aproximada)</em></h2>
+      <div id="score-body"></div>
+    </section>
+
     <footer>
       <p>enemBERT é um projeto independente, não afiliado ao INEP/MEC.</p>
       <p>Definições dos elementos adaptadas de ${RUBRIC_ATTRIBUTION}. Código aberto; o modelo roda localmente via transformers.js — nenhum texto é enviado a servidores.</p>
@@ -112,6 +122,8 @@ const hedgeNote = document.querySelector<HTMLParagraphElement>('#hedge-note')!;
 const warning = document.querySelector<HTMLParagraphElement>('#field-warning')!;
 const verdictSection = document.querySelector<HTMLElement>('#verdict')!;
 const checklistEl = document.querySelector<HTMLUListElement>('#checklist')!;
+const scorePanel = document.querySelector<HTMLElement>('#score-panel')!;
+const scoreBody = document.querySelector<HTMLDivElement>('#score-body')!;
 
 // ---------- rendering helpers ----------
 
@@ -212,6 +224,53 @@ function renderChecklist(results: Record<Element, FoundQuote[]>): string {
   }).join('');
 }
 
+function c5RangePhrase(est: C5Estimate): string {
+  if (est.rangeLo === est.rangeHi) {
+    return `em torno de ${est.c5} de 200`;
+  }
+  return `em torno de ${est.c5} de 200 (provavelmente entre ${est.rangeLo} e ${est.rangeHi})`;
+}
+
+function renderScorePanelHtml(est: C5Estimate): string {
+  const lastIdx = C5_BANDS.length - 1;
+  const loIdx = C5_BANDS.indexOf(est.rangeLo as (typeof C5_BANDS)[number]);
+  const hiIdx = C5_BANDS.indexOf(est.rangeHi as (typeof C5_BANDS)[number]);
+  const pointIdx = C5_BANDS.indexOf(est.c5 as (typeof C5_BANDS)[number]);
+  const leftPct = (loIdx / lastIdx) * 100;
+  const widthPct = ((hiIdx - loIdx) / lastIdx) * 100;
+  const pointPct = (pointIdx / lastIdx) * 100;
+
+  return `
+    <div
+      class="score-meter"
+      role="img"
+      aria-label="Competência 5 estimada ${c5RangePhrase(est)}"
+    >
+      <div class="score-meter-track">
+        <div class="score-meter-range" style="left:${leftPct}%;width:${widthPct}%"></div>
+        <div class="score-meter-point" style="left:${pointPct}%">
+          <span class="score-meter-point-label">${est.c5}</span>
+        </div>
+      </div>
+      <div class="score-meter-ticks">
+        ${C5_BANDS.map((c) => `<span>${c}</span>`).join('')}
+      </div>
+    </div>
+    <p class="score-line">Competência 5: <strong>${c5RangePhrase(est)}</strong>.</p>
+    <p class="score-total">
+      Redações com uma proposta assim costumam ter nota total entre
+      <strong>${est.totalLo}</strong> e <strong>${est.totalHi}</strong> (de 1000).
+    </p>
+    <div class="score-disclaimer">
+      ${ICON_INFO}
+      <p>
+        <strong>Estimativa aproximada — não é a nota oficial.</strong>
+        O resultado final depende de fatores que este modelo não avalia (gramática, argumentação, coesão).
+      </p>
+    </div>
+  `;
+}
+
 // ---------- model lifecycle ----------
 
 async function initModel(): Promise<void> {
@@ -284,6 +343,19 @@ async function runAnalysis(): Promise<void> {
     const results = computeElementResults(paragraphs, spansPerPara);
     checklistEl.innerHTML = renderChecklist(results);
     verdictSection.hidden = false;
+
+    // The score estimate is a bonus, not core to the tagging feature: a
+    // failure here (e.g. score_model.json didn't load) must not blow away
+    // the essay highlighting or checklist the user already sees.
+    try {
+      await loadScoreModel();
+      const estimate = estimateC5(spansPerPara, raw, paragraphs.length);
+      scoreBody.innerHTML = renderScorePanelHtml(estimate);
+      scorePanel.hidden = false;
+    } catch (scoreErr) {
+      console.error('falha ao estimar a Competência 5:', scoreErr);
+      scorePanel.hidden = true;
+    }
   } catch (err) {
     console.error('falha ao analisar o texto:', err);
     output.innerHTML = errorStateHtml(
@@ -291,10 +363,17 @@ async function runAnalysis(): Promise<void> {
     );
     hedgeNote.hidden = true;
     verdictSection.hidden = true;
+    scorePanel.hidden = true;
   } finally {
     goBtn.disabled = false;
     goBtn.textContent = originalLabel;
   }
 }
+
+// Warm the (tiny) score model cache in the background; independent of the
+// tagger model's own loading lifecycle above.
+void loadScoreModel().catch((err) => {
+  console.error('falha ao pré-carregar o modelo de estimativa:', err);
+});
 
 void initModel();
