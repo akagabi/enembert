@@ -27,13 +27,18 @@ def check_env() -> str:
     key = os.environ.get("ENEMBERT_LABELER_KEY")
     if not key:
         raise RuntimeError("Set ENEMBERT_LABELER_KEY (use your personal key, not an org key).")
-    # Contamination tripwire, not a guarantee: this only string-matches "example-org"
-    # in the *values* of HF_*/ENEMBERT_* env vars. It cannot inspect or validate the
-    # opaque ENEMBERT_LABELER_KEY itself, so it catches obvious org-account leakage
-    # in adjacent config, not every possible way a non-personal key could end up here.
-    for var, val in os.environ.items():
-        if "example-org" in val.lower() and var.startswith(("HF_", "ENEMBERT_")):
-            raise RuntimeError(f"{var} appears to reference the org account; personal billing only.")
+    # Contamination tripwire, not a guarantee. This project is personally funded, so
+    # set ENEMBERT_BLOCKED_ORG to an organisation slug that must never end up paying
+    # for its API calls: any HF_*/ENEMBERT_* variable whose *value* mentions that slug
+    # aborts the run. It cannot inspect the opaque ENEMBERT_LABELER_KEY itself, so it
+    # catches obvious org-account leakage in adjacent config, not every possible way a
+    # non-personal key could reach us.
+    blocked = os.environ.get("ENEMBERT_BLOCKED_ORG", "").strip().lower()
+    if blocked:
+        for var, val in os.environ.items():
+            if blocked in val.lower() and var.startswith(("HF_", "ENEMBERT_")):
+                raise RuntimeError(
+                    f"{var} references the blocked organisation ({blocked}); personal billing only.")
     return key
 
 

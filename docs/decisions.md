@@ -1,8 +1,7 @@
 # Binding decisions
 
-Decisions taken at spending gates that later tasks must honour. The working
-ledger under `.superpowers/` is gitignored scratch — this file is the tracked
-record. Aggregates only, no essay text.
+Decisions taken at spending gates that later work must honour, with the measured
+evidence behind each one. Aggregates only, never essay text.
 
 ---
 

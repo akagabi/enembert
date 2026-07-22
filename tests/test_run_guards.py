@@ -18,11 +18,20 @@ def test_cost_guard_trips():
         assert_within_budget(rows)
 
 
-def test_env_refuses_org_vars(monkeypatch):
+def test_env_refuses_blocked_org_vars(monkeypatch):
     monkeypatch.setenv("ENEMBERT_LABELER_KEY", "k")
-    monkeypatch.setenv("HF_ORG", "example-org")
+    monkeypatch.setenv("ENEMBERT_BLOCKED_ORG", "some-org")
+    monkeypatch.setenv("HF_ORG", "some-org-labs")
     with pytest.raises(RuntimeError):
         check_env()
+
+
+def test_env_allows_personal_key_when_no_org_is_blocked(monkeypatch):
+    """The tripwire is opt-in: without ENEMBERT_BLOCKED_ORG it must not fire."""
+    monkeypatch.delenv("ENEMBERT_BLOCKED_ORG", raising=False)
+    monkeypatch.setenv("ENEMBERT_LABELER_KEY", "k")
+    monkeypatch.setenv("HF_ORG", "any-org-at-all")
+    assert check_env() == "k"
 
 
 def _good_response(quote: str) -> str:
