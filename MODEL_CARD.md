@@ -64,7 +64,7 @@ Sem gold humano, não há como medir "acerto" no sentido usual. O que existe sã
 
 O modelo supera o baseline (um marcador regex sobre conectivos como "por meio de", "a fim de") nos cinco elementos. Isso mostra que ele aprendeu algo além de casar palavras-gatilho, não que ele está "certo" num sentido absoluto — o baseline e o modelo estão sendo comparados contra o mesmo rótulo ruidoso.
 
-**2. Correlação com a nota real (a validação externa).** Para cada redação do conjunto de teste, contamos quantos elementos distintos o modelo encontra e comparamos com a nota real de Competência 5 do ENEM daquela redação — uma nota atribuída por corretores humanos de verdade, nunca usada como sinal de treino. Correlação de Spearman ρ = **0.58** (n=255). Redações onde o modelo encontra os 5 elementos têm nota C5 média de 197.2 pontos (n=43); redações onde encontra ≤1 elemento têm média de 72.3 (n=57). Esse é o único número deste projeto ancorado em avaliação humana real — todo o resto mede concordância com um LLM.
+**2. Correlação com a nota real (a validação externa).** Para cada redação do conjunto de teste, contamos quantos elementos distintos o modelo encontra e comparamos com a nota real de Competência 5 do ENEM daquela redação — uma nota atribuída por corretores humanos de verdade, nunca usada como sinal de treino. Correlação de Spearman ρ = **0.58** (n=255). Redações onde o modelo encontra os 5 elementos têm nota C5 média de 197.2 pontos (n=43); redações onde encontra ≤1 elemento têm média de 72.3 (n=57). Esse número é ancorado em avaliação humana real — mas **só vale dentro deste corpus**: num benchmark externo de 30 redações publicadas, a mesma correlação cai para ρ = 0.336 e deixa de ser monotônica (3 elementos → C5 médio 150; 4 elementos → C5 médio 100). Não use a contagem de elementos como nota. Ver [o relatório do resultado negativo](./docs/reports/score-estimate-negative-result.md).
 
 ### Como usar
 
@@ -98,14 +98,21 @@ Treinado sobre `kamel-usp/aes_enem_dataset` (apache-2.0), 3.792 redações únic
 - F1 exact é bem menor que F1 overlap (micro 0.45 vs 0.58) — o modelo costuma acertar a região certa, mas não sempre o limite exato do trecho.
 - A distribuição de notas C5 do conjunto de teste não reflete a do corpus real (superrepresenta notas altas); os números acima são um diagnóstico por faixa de nota, não uma estimativa de acurácia populacional.
 
-### Estimativa de Competência 5 (no demo)
+### Estimativa de Competência 5: construída, medida e removida
 
-O demo web inclui, como recurso opcional, uma estimativa de nota de Competência 5. Isto **não** é parte do modelo `akagabi/enemBERT` publicado aqui — é um modelo separado, pequeno, que roda só no navegador, construído em cima da saída do tagger. A afirmação da seção "O que faz e o que não faz" continua valendo: o tagger em si nunca produz uma pontuação.
+O demo chegou a mostrar uma estimativa de nota de Competência 5. **Ela foi removida** — não por cautela, mas porque a medimos direito e ela não funciona.
 
-- **Como funciona:** uma regressão logística multinomial pequena sobre quais dos 5 elementos o tagger encontrou, quantos elementos distintos e quantos trechos — nada de texto da redação, nada enviado a servidor.
-- **Contra a nota real**, no conjunto de teste retido e disjunto por prompt: QWK (quadratic weighted kappa) = **0.524** — concordância moderada.
-- **Nunca mostra a nota total (0–1000).** Prever o total diretamente chegou a QWK 0.60, mas com erro médio de ±223 pontos — impreciso demais para virar um número. Em vez disso, o demo mostra a nota estimada de C5 como faixa, ao lado da faixa histórica real de nota total de redações que caíram naquela faixa de C5, rotulado como "estimativa aproximada — não é a nota oficial".
-- **Um quase-erro que vale registrar:** uma versão anterior incluía o comprimento da redação como variável e chegava a QWK 0.681, mas o comprimento passou a dominar o modelo — uma redação curta e bem escrita com os 5 elementos presentes tirava C5=40 só por ser curta, e a mesma coisa numa redação mais longa tirava 200. O comprimento foi removido; o modelo ficou em 0.524, honesto e estável em vez de mais preciso e enganoso.
+- **Como funcionava:** uma regressão logística multinomial pequena sobre quais dos 5 elementos o tagger encontrou, quantos elementos distintos e quantos trechos. Rodava só no navegador.
+- **Dentro do corpus** (conjunto de teste retido, disjunto por prompt): QWK = 0.524, concordância moderada. Parecia utilizável.
+- **Fora do corpus** (30 redações publicadas com nota humana real, verificadas como ausentes do corpus de treino): Spearman ρ = **0.347**, IC 95% = **[−0.02, 0.65]**. O intervalo inclui zero — estatisticamente indistinguível de nenhuma correlação.
+- **O primeiro teste externo enganou.** Nas 10 primeiras redações, ρ = 0.831. Nas 20 seguintes, ρ = 0.064. As 10 primeiras continham duas redações nota 1000 do INEP que o modelo acerta com facilidade.
+- **O erro tinha a pior forma possível:** subestimava sistematicamente as boas redações. Para C5 real ≥ 150 (n=13), prevíamos em média 105 contra 181 real. Só parecia acertar nas redações fracas, onde "achou pouco" calha de ser a resposta certa.
+- **A nota total (0–1000) nunca foi mostrada.** Prevê-la diretamente chegou a QWK 0.60, mas com erro médio de ±223 pontos.
+- **Um quase-erro anterior, que vale registrar:** uma versão incluía o comprimento da redação como variável e chegava a QWK 0.681, mas o comprimento dominava o modelo — uma redação curta e boa, com os 5 elementos, tirava C5=40 só por ser curta. O comprimento foi removido.
+
+Relatório completo, com tabelas e método: [resultado negativo da estimativa de nota](./docs/reports/score-estimate-negative-result.md).
+
+**Consequência para a contagem de elementos:** o mesmo benchmark externo mostrou que a correlação entre número de elementos encontrados e nota real de C5 cai de ρ = 0.58 (dentro do corpus) para ρ = **0.336** fora dele, e não é monotônica — redações com 3 elementos encontrados têm média de C5 150, mas as com 4 têm média 100. **Não use a contagem de elementos como medida de qualidade.**
 
 ### Créditos
 
@@ -162,7 +169,7 @@ Without human gold, "correctness" in the usual sense is not measurable. What exi
 
 The model beats the baseline (a regex tagger over discourse markers like "por meio de", "a fim de") on all five elements. That shows it learned something beyond trigger-word matching, not that it is "right" in an absolute sense — both model and baseline are being scored against the same noisy label.
 
-**2. Correlation with the real grade (the external check).** For each held-out essay, we count how many distinct elements the model finds and compare against that essay's real ENEM Competência 5 grade — assigned by actual human graders, never used as a training signal. Spearman ρ = **0.58** (n=255). Essays where the model finds all 5 elements average a C5 grade of 197.2 (n=43); essays where it finds <=1 element average 72.3 (n=57). This is the one number in the project anchored to real human judgment; everything else measures agreement with an LLM.
+**2. Correlation with the real grade (the external check).** For each held-out essay, we count how many distinct elements the model finds and compare against that essay's real ENEM Competência 5 grade — assigned by actual human graders, never used as a training signal. Spearman ρ = **0.58** (n=255). Essays where the model finds all 5 elements average a C5 grade of 197.2 (n=43); essays where it finds <=1 element average 72.3 (n=57). This number is anchored to real human judgment — but it **only holds inside this corpus**: on an external benchmark of 30 published essays the same correlation drops to ρ = 0.336 and stops being monotonic (3 elements → mean C5 150; 4 elements → mean C5 100). Do not use the element count as a grade. See [the negative-result report](./docs/reports/score-estimate-negative-result.md).
 
 ### Usage
 
@@ -196,14 +203,21 @@ Trained on `kamel-usp/aes_enem_dataset` (apache-2.0), 3,792 unique essays overal
 - Exact-span F1 is noticeably lower than overlap F1 (micro 0.45 vs 0.58) — the model usually finds the right region but not always the exact boundary.
 - The gold set's C5 grade distribution does not match the real corpus (it over-represents high-scoring essays); the numbers above are a diagnostic across score bands, not a population-level accuracy estimate.
 
-### Competência 5 score estimate (in the demo)
+### Competência 5 score estimate: built, measured, removed
 
-The web demo includes an optional Competência 5 score estimate. This is **not** part of the `akagabi/enemBERT` model published here — it's a separate, small model that runs only in the browser, built on top of the tagger's output. The claim in "What it does and what it does not" still holds: the tagger itself never produces a score.
+The demo used to show an estimated Competência 5 grade. **It has been removed** — not out of caution, but because we measured it properly and it does not work.
 
-- **How it works:** a small multinomial logistic regression over which of the 5 elements the tagger found, how many distinct elements, and how many spans — no essay text, nothing sent to a server.
-- **Against the real grade**, on the held-out, prompt-disjoint gold set: QWK (quadratic weighted kappa) = **0.524**, moderate agreement.
-- **Never shows the total (0-1000).** Predicting the total directly reached QWK 0.60 but with an average error of ±223 points, too imprecise to show as a number. Instead the demo shows the estimated C5 as a range, next to the real historical range of total scores for essays that landed in that C5 band, labeled "estimativa aproximada — não é a nota oficial" (approximate estimate, not the official grade).
-- **A near-miss worth recording:** an earlier version added essay length as a feature and reached QWK 0.681, but length ended up dominating the model — a well-written short essay with all 5 elements scored C5=40 just for being short, and the same elements in a longer essay scored 200. Length was dropped; the model settled at 0.524, honest and stable instead of sharper and misleading.
+- **How it worked:** a small multinomial logistic regression over which of the 5 elements the tagger found, how many distinct elements, and how many spans. Ran entirely in the browser.
+- **In-corpus** (held-out, prompt-disjoint test set): QWK = 0.524, moderate agreement. It looked usable.
+- **Out-of-corpus** (30 published essays with real human grades, each verified absent from the training corpus): Spearman ρ = **0.347**, 95% CI = **[−0.02, 0.65]**. The interval includes zero — statistically indistinguishable from no correlation.
+- **The first external check was misleading.** On the first 10 essays, ρ = 0.831. On the next 20, ρ = 0.064. Those first 10 happened to include two INEP *nota 1000* exemplars the model aces.
+- **The error had the worst possible shape:** it systematically under-credited good essays. For real C5 ≥ 150 (n=13) we predicted a mean of 105 against a real mean of 181. It only looked accurate on weak essays, where "found little" happens to be the right answer.
+- **The total (0–1000) was never shown.** Predicting it directly reached QWK 0.60 but with an average error of ±223 points.
+- **An earlier near-miss worth recording:** one version added essay length as a feature and reached QWK 0.681, but length dominated the model — a short, well-written essay with all 5 elements scored C5=40 just for being short. Length was dropped.
+
+Full report with tables and method: [score-estimate negative result](./docs/reports/score-estimate-negative-result.md).
+
+**Consequence for the element count:** the same external benchmark showed the correlation between number of elements found and real C5 grade drops from ρ = 0.58 (in-corpus) to ρ = **0.336** externally, and is not monotonic — essays where 3 elements are found average a real C5 of 150, while those with 4 average 100. **Do not use the element count as a quality score.**
 
 ### Credits
 

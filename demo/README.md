@@ -1,0 +1,72 @@
+# enemBERT demo
+
+Browser-local tagger for the five elements of the ENEM *proposta de intervenção*.
+Runs [transformers.js](https://github.com/huggingface/transformers.js) against an
+int8-quantized ONNX export — no essay text ever leaves the machine.
+
+```bash
+npm install
+npm run dev      # http://localhost:5173  — loads weights from demo/public/models/
+npm run build    # production bundle in demo/dist/
+npm run preview  # serve the production bundle
+```
+
+## Where the weights come from
+
+Deliberately different between dev and prod, in `src/tagger.ts`:
+
+```ts
+env.allowLocalModels  = import.meta.env.DEV;   // dev: bundled weights under /models/
+env.allowRemoteModels = !import.meta.env.DEV;  // prod: streamed from Hugging Face
+```
+
+**This means `npm run preview` cannot load the model until `akagabi/enemBERT` is
+published on the Hub.** A production build that reports *"não foi possível
+carregar o modelo"* against a 401/404 on `huggingface.co/.../config.json` is
+behaving correctly for an unpublished model — use `npm run dev` to exercise the
+UI locally.
+
+## Gotcha: transformers.js caches weights aggressively
+
+transformers.js stores downloaded weights in a Cache Storage bucket named
+`transformers-cache`. It does **not** revalidate them against the server, so
+after re-exporting the ONNX model the browser will happily keep serving the old
+weights — including across a hard reload. This cost real debugging time: the
+demo appeared to have regressed on indirect phrasings that the newly trained
+model actually handled fine.
+
+After changing the weights, clear the cache before believing anything you see:
+
+```js
+await caches.delete('transformers-cache');  // then reload
+```
+
+Worth remembering for deployment too: users who visited an earlier version keep
+their cached weights indefinitely. Publishing a new model under a **new repo or
+revision** is the reliable way to push an update, rather than overwriting files
+in place.
+
+## Layout
+
+| file | role |
+|---|---|
+| `src/tagger.ts` | model loading, tokenization, span decoding |
+| `src/main.ts` | UI shell, highlighting, checklist, theme toggle |
+| `src/rubric.ts` | element definitions and examples (adapted from the INEP Cartilha) |
+| `src/styles.css` | light theme by default; dark via `:root[data-theme='dark']` |
+
+### Span offsets are reconstructed, not reported
+
+transformers.js does not return character offsets for token-classification
+output, so `tagger.ts` recovers them by scanning each word forward through the
+paragraph with a moving cursor. Consequences worth knowing: punctuation-only and
+1–2 character spans are dropped as model noise, and a word that repeats can in
+principle anchor to the wrong occurrence.
+
+## What the demo deliberately does not do
+
+It does not show a score. An estimated Competência 5 grade was built, measured
+against 30 externally-graded essays, and removed — it correlated with real
+grades at ρ = 0.347, 95% CI [−0.02, 0.65], and under-credited good essays
+specifically. See
+[`../docs/reports/score-estimate-negative-result.md`](../docs/reports/score-estimate-negative-result.md).
