@@ -1,0 +1,39 @@
+{
+  "kind": "coarse_element_bands",
+  "cut": 3,
+  "buckets": [
+    {
+      "min_elements": 0,
+      "max_elements": 2,
+      "lo": 50,
+      "hi": 140,
+      "median": 100,
+      "n": 14,
+      "full_lo": 0,
+      "full_hi": 200
+    },
+    {
+      "min_elements": 3,
+      "max_elements": 5,
+      "lo": 100,
+      "hi": 200,
+      "median": 150,
+      "n": 16,
+      "full_lo": 50,
+      "full_hi": 200
+    }
+  ],
+  "meta": {
+    "source": "external benchmark (published essays with real human grades, each verified absent from the training corpus)",
+    "n_external": 30,
+    "mannwhitney_p": 0.0353,
+    "bonferroni_threshold": 0.0083,
+    "survives_correction": false,
+    "replicates_in_corpus": true,
+    "in_corpus_medians": [
+      80,
+      200
+    ],
+    "warning": "Coarse, weak signal. Ranges overlap heavily; n=30; the raw p-value does not survive correction for the 6 splits tried. This is NOT a grade and must never be displayed as one. The 6-band point estimate this replaced failed outright — see docs/reports/score-estimate-negative-result.md."
+  }
+}

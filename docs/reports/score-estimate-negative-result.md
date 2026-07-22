@@ -1,6 +1,6 @@
 # The score estimate does not work
 
-*2026-07-22 — why enemBERT ships a highlighter and not a grade*
+*2026-07-22 — why enemBERT ships a highlighter and a coarse band, not a grade*
 
 This is the report I'd have most wanted to read before building the thing. It
 documents a feature that worked on every internal metric, survived a first
@@ -103,11 +103,12 @@ And it is **non-monotonic** — essays where the model finds 3 elements average 
 real C5 of 150, but essays where it finds 4 average 100. Only the extremes
 behave sensibly: all 5 found → mean C5 200 (n=2); 0–1 found → 75–100.
 
-So the element count is *not* a quality ranking, and the demo does not present
-it as one. What survives external validation is the narrow, literal claim: the
-model points at spans of text that look like each of the five elements, and it
-is right often enough to be a useful second pair of eyes. Not a score. Not a
-ranking. A highlighter.
+So the element count is *not* a fine-grained quality ranking, and the demo does
+not present it as one. What survives external validation is a much narrower pair
+of claims: the model points at spans that look like each of the five elements and
+is right often enough to be a useful second pair of eyes, and — coarsely, weakly —
+essays where it finds 3+ elements did score higher than essays where it finds 0–2.
+The next section is what that reduced claim looks like in the product.
 
 ## What I'd tell someone starting this
 
@@ -119,17 +120,65 @@ ranking. A highlighter.
    candidates were already in the training corpus.
 4. **Look at the shape of the error, not just its size.** MAE 62 sounds
    survivable. "Systematically tells strong writers they are weak" does not.
-5. **A negative result you can defend is a shippable artifact.** Deleting the
-   feature made the project more useful, not less.
+5. **A negative result you can defend is a shippable artifact.** Killing the
+   confident version made the project more useful, not less.
+6. **Ask what survives before you delete everything.** The 6-band score was
+   unsalvageable, but a 2-bucket version of the same signal held up on two
+   independent sets. The honest move was to shrink the claim to fit the
+   evidence, not to abandon the question.
+
+## What replaced it
+
+The point estimate is gone. What the demo shows now is the one claim that survived
+the same benchmark: a **coarse two-bucket split** on how many of the five elements
+were found.
+
+| bucket | n | median real C5 | middle half |
+|---|---|---|---|
+| 0–2 elements found | 14 | 100 | 50–140 |
+| 3–5 elements found | 16 | 150 | 100–200 |
+
+Mann-Whitney one-sided p = 0.035, and the direction replicates independently on the
+in-corpus gold set (medians 80 → 200, n=255). That replication is the reason it ships
+at all.
+
+It is still weak, and the panel says so on its face. Three things are stated in the UI
+rather than buried here:
+
+- **the ranges overlap heavily** — the meter draws the other bucket's range underneath
+  yours, so the overlap is visible rather than described;
+- **n=30**;
+- **the raw p-value does not survive Bonferroni correction** for the six splits that
+  were tried (threshold 0.0083).
+
+Finer splits were rejected on evidence, not taste. Cutting at 4+ elements gives p =
+0.38. Per-exact-count medians are non-monotonic — 3 elements outscores 4:
+
+| elements found | n | median real C5 |
+|---|---|---|
+| 0 | 2 | 100 |
+| 1 | 4 | 50 |
+| 2 | 8 | 100 |
+| 3 | 9 | **150** |
+| 4 | 5 | **100** |
+| 5 | 2 | 200 |
+
+And the ranges shown are fit on the **external** set, not the in-corpus one: the gold
+set over-represents high-scoring essays, so its ranges would flatter the reader.
+
+`tests/test_score_model.py` enforces the properties that make this defensible — two
+buckets, always a range and never a point, overlapping ranges, and the caveats present
+in the shipped JSON — so a future recalibration can't quietly walk it back.
 
 ## Reproducing this
 
-The estimator's coefficients are preserved at
+The failed estimator's coefficients are preserved at
 [`score_model_v1.json`](score_model_v1.json) solely so this measurement stays
 reproducible:
 
 ```
-python scripts/eval_external.py runs/model/final
+python scripts/eval_external.py runs/model/final      # reproduces the failure
+python scripts/calibrate_score.py --verbose           # rebuilds the coarse band that replaced it
 ```
 
 The benchmark essays themselves (`data/external_benchmark/`) are **not**

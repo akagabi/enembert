@@ -10,6 +10,7 @@ import {
   type Element,
 } from './tagger';
 import { ELEMENT_INFO, RUBRIC_ATTRIBUTION } from './rubric';
+import { loadScoreModel, coarseBand, type CoarseBand } from './scorer';
 
 const ICON_LOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const ICON_INFO = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
@@ -76,6 +77,11 @@ app.innerHTML = `
           <button id="edit-btn" type="button" class="btn-edit">${ICON_EDIT}editar / colar outra</button>
         </div>
 
+        <section id="score-panel" class="score-panel" hidden aria-labelledby="score-heading">
+          <h2 id="score-heading">Competência 5 — faixa aproximada</h2>
+          <div id="score-body"></div>
+        </section>
+
         <div id="output"></div>
         <p id="hedge-note" class="hedge-note" hidden>
           Trechos com <span class="sample">sublinhado tracejado</span> são casos em que o modelo teve baixa confiança —
@@ -117,6 +123,8 @@ const resultView = document.querySelector<HTMLDivElement>('#result-view')!;
 const editBtn = document.querySelector<HTMLButtonElement>('#edit-btn')!;
 const verdictSection = document.querySelector<HTMLElement>('#verdict')!;
 const checklistEl = document.querySelector<HTMLUListElement>('#checklist')!;
+const scorePanel = document.querySelector<HTMLElement>('#score-panel')!;
+const scoreBody = document.querySelector<HTMLDivElement>('#score-body')!;
 
 // ---------- rendering helpers ----------
 
@@ -210,6 +218,60 @@ function renderChecklist(results: Record<Element, FoundQuote[]>): string {
   }).join('');
 }
 
+
+// The band as a WIDE range on a 0-200 track, never a single number. The earlier
+// point-estimate version of this panel was measured against real grades and
+// failed (rho 0.347, CI including zero), so what ships is the coarse 3+-elements
+// split that survived — with its overlap and sample size stated on the face of
+// the panel rather than buried in a tooltip.
+function renderScorePanelHtml(b: CoarseBand): string {
+  const pct = (v: number) => (v / 200) * 100;
+  const groupLabel = b.isHigh
+    ? `${b.cut} ou mais dos cinco elementos`
+    : `menos de ${b.cut} dos cinco elementos`;
+  const otherLabel = b.isHigh
+    ? `quem tinha menos de ${b.cut}`
+    : `quem tinha ${b.cut} ou mais`;
+
+  return `
+    <p class="score-lead">
+      O modelo encontrou <strong>${b.nElements} de 5</strong> elementos. Num teste com 30 redações
+      já corrigidas por humanos, as que tinham ${groupLabel} tiraram, na metade central dos casos,
+      entre <strong>${b.lo}</strong> e <strong>${b.hi}</strong> pontos na Competência 5
+      (mediana ${b.median}, de um máximo de 200).
+    </p>
+    <div class="score-meter" role="img"
+         aria-label="Faixa aproximada de Competência 5: entre ${b.lo} e ${b.hi} de 200, mediana ${b.median}">
+      <div class="score-meter-track">
+        <div class="score-meter-other" style="left:${pct(b.otherLo)}%;width:${pct(b.otherHi - b.otherLo)}%"></div>
+        <div class="score-meter-range" style="left:${pct(b.lo)}%;width:${pct(b.hi - b.lo)}%"></div>
+        <div class="score-meter-point" style="left:${pct(b.median)}%"></div>
+      </div>
+      <div class="score-meter-ticks">
+        <span>0</span><span>50</span><span>100</span><span>150</span><span>200</span>
+      </div>
+      <p class="score-meter-key">
+        <span class="key-mine"></span> seu grupo
+        <span class="key-other"></span> o outro grupo (${otherLabel}: ${b.otherLo}–${b.otherHi})
+      </p>
+    </div>
+    <div class="score-disclaimer">
+      ${ICON_INFO}
+      <div>
+        <p><strong>Isto não é uma nota, e o sinal é fraco.</strong></p>
+        <p>
+          A faixa olha só <em>quantos</em> dos cinco elementos aparecem — não o quanto foram bem
+          desenvolvidos, nem gramática, argumentação ou coesão. As faixas dos dois grupos se
+          sobrepõem bastante, a amostra tem apenas 30 redações e a diferença entre os grupos não é
+          estatisticamente robusta. Uma versão anterior desta caixa tentava estimar a nota exata e
+          errava em média 62 pontos, subestimando justamente as redações boas — por isso ela foi
+          substituída por esta faixa larga.
+        </p>
+      </div>
+    </div>
+  `;
+}
+
 // ---------- model lifecycle ----------
 
 async function initModel(): Promise<void> {
@@ -240,7 +302,11 @@ async function initModel(): Promise<void> {
 }
 
 retryBtn.addEventListener('click', () => {
-  void initModel();
+  void loadScoreModel().catch((err) => {
+  console.error('falha ao pré-carregar as faixas de Competência 5:', err);
+});
+
+void initModel();
 });
 
 // ---------- view switching ----------
@@ -291,6 +357,18 @@ async function runAnalysis(): Promise<void> {
     checklistEl.innerHTML = renderChecklist(results);
     verdictSection.hidden = false;
 
+    // The band is a bonus on top of the tagging: if score_model.json failed to
+    // load, the user still gets the highlighting and checklist they came for.
+    try {
+      await loadScoreModel();
+      const nElements = ELEMENTS.filter((e) => results[e].length > 0).length;
+      scoreBody.innerHTML = renderScorePanelHtml(coarseBand(nElements));
+      scorePanel.hidden = false;
+    } catch (scoreErr) {
+      console.error('falha ao calcular a faixa de Competência 5:', scoreErr);
+      scorePanel.hidden = true;
+    }
+
     form.hidden = true;
     resultView.hidden = false;
   } catch (err) {
@@ -299,6 +377,7 @@ async function runAnalysis(): Promise<void> {
     analyzeError.hidden = false;
     hedgeNote.hidden = true;
     verdictSection.hidden = true;
+    scorePanel.hidden = true;
     resultView.hidden = true;
   } finally {
     goBtn.disabled = false;

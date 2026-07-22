@@ -673,3 +673,145 @@ footer p {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+
+/* ---------- Competência 5 band: a wide range, never a number ---------- */
+
+.score-panel {
+  background: linear-gradient(155deg, var(--accent-soft), var(--bg-card) 70%);
+  border: 1.5px solid color-mix(in srgb, var(--accent) 30%, var(--rule));
+  border-radius: 16px;
+  padding: 1.35rem 1.4rem 1.2rem;
+  margin-bottom: 1.6rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.score-panel h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin: 0 0 0.6rem;
+  color: var(--ink);
+}
+
+.score-lead {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.score-lead strong {
+  font-weight: 700;
+}
+
+.score-meter {
+  margin-bottom: 1rem;
+}
+
+.score-meter-track {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+/* the other group, drawn underneath, so the overlap is impossible to miss */
+.score-meter-other {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: color-mix(in srgb, var(--ink-soft) 22%, transparent);
+}
+
+.score-meter-range {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.score-meter-point {
+  position: absolute;
+  top: -3px;
+  width: 3px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: translateX(-1.5px);
+}
+
+.score-meter-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.score-meter-key {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.55rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.score-meter-key .key-mine,
+.score-meter-key .key-other {
+  display: inline-block;
+  width: 14px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.score-meter-key .key-mine {
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.score-meter-key .key-other {
+  background: color-mix(in srgb, var(--ink-soft) 22%, transparent);
+  margin-left: 0.5rem;
+}
+
+.score-disclaimer {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.85rem;
+}
+
+.score-disclaimer svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--ink-soft);
+}
+
+.score-disclaimer p {
+  margin: 0 0 0.4rem;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.score-disclaimer p:last-child {
+  margin-bottom: 0;
+}
+
+.score-disclaimer strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (max-width: 30rem) {
+  .score-panel {
+    padding: 1.15rem 1rem 1rem;
+  }
+}

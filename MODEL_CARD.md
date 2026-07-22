@@ -98,9 +98,9 @@ Treinado sobre `kamel-usp/aes_enem_dataset` (apache-2.0), 3.792 redações únic
 - F1 exact é bem menor que F1 overlap (micro 0.45 vs 0.58) — o modelo costuma acertar a região certa, mas não sempre o limite exato do trecho.
 - A distribuição de notas C5 do conjunto de teste não reflete a do corpus real (superrepresenta notas altas); os números acima são um diagnóstico por faixa de nota, não uma estimativa de acurácia populacional.
 
-### Estimativa de Competência 5: construída, medida e removida
+### Estimativa de Competência 5: reduzida a uma faixa grosseira
 
-O demo chegou a mostrar uma estimativa de nota de Competência 5. **Ela foi removida** — não por cautela, mas porque a medimos direito e ela não funciona.
+O demo chegou a mostrar uma estimativa de nota exata de Competência 5. **Ela foi removida** — não por cautela, mas porque a medimos direito e ela não funciona. No lugar dela ficou uma faixa grosseira de dois grupos, que é o que a evidência sustenta.
 
 - **Como funcionava:** uma regressão logística multinomial pequena sobre quais dos 5 elementos o tagger encontrou, quantos elementos distintos e quantos trechos. Rodava só no navegador.
 - **Dentro do corpus** (conjunto de teste retido, disjunto por prompt): QWK = 0.524, concordância moderada. Parecia utilizável.
@@ -109,6 +109,8 @@ O demo chegou a mostrar uma estimativa de nota de Competência 5. **Ela foi remo
 - **O erro tinha a pior forma possível:** subestimava sistematicamente as boas redações. Para C5 real ≥ 150 (n=13), prevíamos em média 105 contra 181 real. Só parecia acertar nas redações fracas, onde "achou pouco" calha de ser a resposta certa.
 - **A nota total (0–1000) nunca foi mostrada.** Prevê-la diretamente chegou a QWK 0.60, mas com erro médio de ±223 pontos.
 - **Um quase-erro anterior, que vale registrar:** uma versão incluía o comprimento da redação como variável e chegava a QWK 0.681, mas o comprimento dominava o modelo — uma redação curta e boa, com os 5 elementos, tirava C5=40 só por ser curta. O comprimento foi removido.
+
+**O que o demo mostra hoje:** um único corte grosseiro em 3+ dos cinco elementos. Redações com 3+ elementos tiveram mediana de C5 real 150 (metade central 100–200, n=16); com 0–2 elementos, mediana 100 (metade central 50–140, n=14); Mann-Whitney p = 0.035. A direção se repete de forma independente no conjunto interno (medianas 80 → 200, n=255) — é por isso que ela é exibida. O painel declara na própria tela que as faixas se sobrepõem, que a amostra é de 30 redações e que a diferença não sobrevive à correção de Bonferroni para os 6 cortes testados. Cortes mais finos foram rejeitados por evidência: em 4+ elementos, p = 0.38, e as medianas por contagem exata não são monotônicas (3 elementos supera 4).
 
 Relatório completo, com tabelas e método: [resultado negativo da estimativa de nota](./docs/reports/score-estimate-negative-result.md).
 
@@ -203,9 +205,9 @@ Trained on `kamel-usp/aes_enem_dataset` (apache-2.0), 3,792 unique essays overal
 - Exact-span F1 is noticeably lower than overlap F1 (micro 0.45 vs 0.58) — the model usually finds the right region but not always the exact boundary.
 - The gold set's C5 grade distribution does not match the real corpus (it over-represents high-scoring essays); the numbers above are a diagnostic across score bands, not a population-level accuracy estimate.
 
-### Competência 5 score estimate: built, measured, removed
+### Competência 5 score estimate: reduced to a coarse band
 
-The demo used to show an estimated Competência 5 grade. **It has been removed** — not out of caution, but because we measured it properly and it does not work.
+The demo used to show an estimated exact Competência 5 grade. **It has been removed** — not out of caution, but because we measured it properly and it does not work. What replaced it is a coarse two-bucket band, which is what the evidence supports.
 
 - **How it worked:** a small multinomial logistic regression over which of the 5 elements the tagger found, how many distinct elements, and how many spans. Ran entirely in the browser.
 - **In-corpus** (held-out, prompt-disjoint test set): QWK = 0.524, moderate agreement. It looked usable.
@@ -214,6 +216,8 @@ The demo used to show an estimated Competência 5 grade. **It has been removed**
 - **The error had the worst possible shape:** it systematically under-credited good essays. For real C5 ≥ 150 (n=13) we predicted a mean of 105 against a real mean of 181. It only looked accurate on weak essays, where "found little" happens to be the right answer.
 - **The total (0–1000) was never shown.** Predicting it directly reached QWK 0.60 but with an average error of ±223 points.
 - **An earlier near-miss worth recording:** one version added essay length as a feature and reached QWK 0.681, but length dominated the model — a short, well-written essay with all 5 elements scored C5=40 just for being short. Length was dropped.
+
+**What the demo shows today:** a single coarse cut at 3+ of the five elements. Essays with 3+ elements had a median real C5 of 150 (middle half 100–200, n=16); essays with 0–2 had a median of 100 (middle half 50–140, n=14); Mann-Whitney p = 0.035. The direction replicates independently on the in-corpus gold set (medians 80 → 200, n=255), which is why it is shown at all. The panel states on its own face that the ranges overlap, that the sample is 30 essays, and that the difference does not survive Bonferroni correction for the 6 cuts tried. Finer cuts were rejected on evidence: at 4+ elements p = 0.38, and per-exact-count medians are non-monotonic (3 elements outscores 4).
 
 Full report with tables and method: [score-estimate negative result](./docs/reports/score-estimate-negative-result.md).
 

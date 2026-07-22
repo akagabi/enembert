@@ -63,6 +63,12 @@ It only looked accurate on weak essays, and for a hollow reason: "found few elem
 
 So the score is gone. Not softened, not hedged behind a bigger disclaimer — deleted. A disclaimer doesn't fix a number that's wrong in a specific, harmful direction; people read the number and skip the caveat.
 
+What I did keep is the one claim that survived the same benchmark, and only because it survived it: a coarse two-bucket split. Essays where the model finds three or more elements had a median real C5 of 150 against 100 for essays where it finds two or fewer (p = 0.035), and — the part that convinced me — the same direction shows up independently on the in-corpus gold set, medians 80 against 200. Two independent sets agreeing on direction is a much better reason to ship something than one set agreeing with itself.
+
+It's still weak, so the demo says so where you can't miss it: the meter draws the *other* bucket's range underneath yours, so the enormous overlap is visible rather than described, and the caption states n=30 and that the difference doesn't survive correcting for the six splits I tried. Finer splits were rejected on evidence — cutting at four elements gives p = 0.38, and the per-count medians are non-monotonic, with three elements outscoring four. The displayed ranges come from the external set rather than the in-corpus one, because the gold set over-represents high-scoring essays and its ranges would flatter the reader.
+
+The distance between "your essay scores 105" and "essays with 3+ elements usually landed between 100 and 200, and here's how much that overlaps with everyone else" is the whole lesson of this project.
+
 The same benchmark also forced me to downgrade a claim about the feature that *did* ship. The element count correlates with real C5 at ρ = 0.58 in-corpus but only **0.336** externally, and non-monotonically: essays where the model finds 3 elements average a real C5 of 150, while essays where it finds 4 average 100. Only the extremes behave (all five found → mean 200, n=2; zero or one → 75–100). So the element count is not a quality ranking, and the demo doesn't present it as one.
 
 What survives is the narrow claim I can actually defend: the model points at spans that look like each of the five elements, and it's right often enough to be a useful second pair of eyes. Not a grade. Not a ranking. A highlighter. That's a smaller product than I set out to build, and it's the one the evidence supports.
