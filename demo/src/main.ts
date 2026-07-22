@@ -109,6 +109,12 @@ app.innerHTML = `
               <strong>Os rótulos de treino vieram de outra IA</strong>, não de corretores do ENEM, e
               nunca foram revisados por um especialista. Definições adaptadas de ${RUBRIC_ATTRIBUTION}.
             </p>
+            <p>
+              <strong>Privacidade, em detalhe.</strong> Seu texto é analisado no próprio navegador e
+              nunca é enviado a lugar nenhum. A única conexão externa que esta página faz é baixar o
+              modelo do Hugging Face na primeira visita — depois ele fica no cache do seu navegador.
+              Não há analytics, rastreadores nem fontes de terceiros.
+            </p>
           </div>
         </details>
       </div>
