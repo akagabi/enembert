@@ -4,6 +4,13 @@ This is the honest out-of-distribution check: essays collected from INEP's Carti
 do Participante and UOL's Banco de Redações, each verified ABSENT from the
 kamel-usp training data, each carrying a published per-competency human grade.
 
+THIS SCRIPT IS THE RECORD OF A NEGATIVE RESULT. It is what killed the C5 score
+estimate: on n=30 the estimator's rank correlation with real human C5 grades was
+0.347 with a 95% CI of [-0.02, 0.65] — indistinguishable from chance. The score
+was removed from the demo; the estimator's coefficients survive only as
+docs/reports/score_model_v1.json so this measurement stays reproducible.
+See docs/reports/score-estimate-negative-result.md.
+
 Usage:
     python scripts/eval_external.py [MODEL_DIR]        # default runs/model/final
     SCORE_MODEL=path/to/score_model.json python scripts/eval_external.py ...
@@ -46,7 +53,7 @@ def estimate_c5(scorer, found, n_spans):
 
 def main():
     model_dir = sys.argv[1] if len(sys.argv) > 1 else "runs/model/final"
-    scorer = json.load(open(os.environ.get("SCORE_MODEL", "demo/public/score_model.json")))
+    scorer = json.load(open(os.environ.get("SCORE_MODEL", "docs/reports/score_model_v1.json")))
     essays = json.load(open(ESSAYS))
     tok = AutoTokenizer.from_pretrained(model_dir)
     net = AutoModelForTokenClassification.from_pretrained(model_dir)
