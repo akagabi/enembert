@@ -115,7 +115,11 @@ app.innerHTML = `
     </section>
 
     <footer>
-      <p>Projeto independente, sem vínculo com o INEP/MEC · <a href="https://github.com/akagabi/enembert">código e avaliação no GitHub</a></p>
+      <p>
+        Feito por <a href="https://github.com/akagabi" rel="me noopener" target="_blank">akagabi</a> ·
+        <a href="https://github.com/akagabi/enembert" rel="noopener" target="_blank">código e avaliação</a> ·
+        projeto independente, sem vínculo com o INEP/MEC
+      </p>
     </footer>
   </div>
 `;

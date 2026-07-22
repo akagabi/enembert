@@ -635,6 +635,17 @@ footer p {
   margin: 0;
 }
 
+footer a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  transition: border-color 0.15s ease;
+}
+
+footer a:hover {
+  border-bottom-color: var(--accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
