@@ -38,19 +38,45 @@ jobs:
         working-directory: demo
         run: npm run build
 
-      - name: Guard — the bundle must not contain essay text or model weights
+      - name: Guard — no bundled weights, no third-party hosts
         working-directory: demo
         run: |
-          # The demo streams weights from the Hub; a stray local model directory
-          # would mean shipping ~100MB and, worse, that someone committed data.
+          # The demo streams model weights from the Hub; a stray local model
+          # directory would mean shipping ~500MB and, worse, that someone
+          # committed corpus data.
           if [ -d dist/models ]; then
             echo "::error::dist/models exists — weights must be streamed from Hugging Face, not bundled"
             exit 1
           fi
+
+          # The page claims nothing leaves the browser except the model download.
+          # These two files must be served by us: without them onnxruntime-web
+          # silently fetches its runtime from cdn.jsdelivr.net, and self-hosted
+          # fonts are the whole reason we stopped using Google Fonts. A missing
+          # file here degrades to a third-party request that nothing else catches.
+          for f in ort/ort-wasm-simd-threaded.asyncify.wasm \
+                   ort/ort-wasm-simd-threaded.asyncify.mjs \
+                   fonts/karla-latin.woff2 \
+                   fonts/fraunces-latin.woff2; do
+            if [ ! -f "dist/$f" ]; then
+              echo "::error::dist/$f missing — the page would fall back to a third-party CDN"
+              exit 1
+            fi
+          done
+
+          # No third-party host may appear in the shipped HTML or CSS. (The JS
+          # bundle legitimately contains a jsdelivr string as an unreached
+          # fallback, so it is excluded here and covered by the file check above.)
+          if grep -rqE "https://(fonts\.googleapis|fonts\.gstatic|cdn\.jsdelivr)" dist/index.html dist/assets/*.css; then
+            echo "::error::a third-party host is referenced in the shipped HTML/CSS"
+            grep -roE "https://(fonts\.googleapis|fonts\.gstatic|cdn\.jsdelivr)[^\"')]*" dist/index.html dist/assets/*.css
+            exit 1
+          fi
+
           size=$(du -sm dist | cut -f1)
           echo "dist is ${size} MB"
-          if [ "$size" -gt 60 ]; then
-            echo "::error::dist is ${size} MB, which is far larger than expected for a weight-free build"
+          if [ "$size" -gt 40 ]; then
+            echo "::error::dist is ${size} MB — expected ~23 MB; is a weight or duplicate wasm being shipped?"
             exit 1
           fi
 

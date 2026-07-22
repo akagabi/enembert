@@ -15,6 +15,24 @@ env.allowLocalModels = import.meta.env.DEV;   // dev: load bundled weights from 
 env.allowRemoteModels = !import.meta.env.DEV;  // prod: stream from HF
 env.localModelPath = '/models/';
 
+// Pin the ONNX runtime to the copy we serve ourselves (see the
+// self-host-onnxruntime plugin in vite.config.ts). Left unset, onnxruntime-web
+// fetches its runtime -- a ~4.7 MB wasm plus JS glue -- from cdn.jsdelivr.net,
+// which would let a third party see every visitor of a page whose whole pitch is
+// that nothing leaves the browser.
+//
+// The explicit {wasm, mjs} pair matters: a bare path prefix would let the runtime
+// pick a build variant we don't host and 404, and supplying only one of the two
+// makes it ignore both and go to the CDN anyway.
+const ortBase = `${import.meta.env.BASE_URL}ort/`;
+const onnxWasm = env.backends?.onnx?.wasm;
+if (onnxWasm) {
+  onnxWasm.wasmPaths = {
+    wasm: `${ortBase}ort-wasm-simd-threaded.asyncify.wasm`,
+    mjs: `${ortBase}ort-wasm-simd-threaded.asyncify.mjs`,
+  };
+}
+
 const MODEL_ID = import.meta.env.DEV ? 'enembert' : 'akagabi/enemBERT';
 
 export const ELEMENTS = ['AGENTE', 'ACAO', 'MEIO', 'EFEITO', 'DETALHAMENTO'] as const;
