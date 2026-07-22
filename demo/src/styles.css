@@ -815,3 +815,120 @@ footer p {
     padding: 1.15rem 1rem 1rem;
   }
 }
+
+/* ---------- collapsed prose: honest, but not in the way ---------- */
+
+.fine-print,
+.score-why {
+  border-top: 1px solid var(--rule);
+  margin-top: 1rem;
+  padding-top: 0.7rem;
+}
+
+.fine-print > summary,
+.score-why > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fine-print > summary::-webkit-details-marker,
+.score-why > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fine-print > summary::before,
+.score-why > summary::before {
+  content: '▸';
+  font-size: 0.7em;
+  transition: transform 0.15s ease;
+}
+
+.fine-print[open] > summary::before,
+.score-why[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.fine-print > summary:hover,
+.score-why > summary:hover {
+  color: var(--ink);
+}
+
+.fine-print-body,
+.score-why-body {
+  padding-top: 0.6rem;
+}
+
+.fine-print-body p,
+.score-why-body p {
+  margin: 0 0 0.65rem;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.fine-print-body p:last-child,
+.score-why-body p:last-child {
+  margin-bottom: 0;
+}
+
+.fine-print-body strong,
+.score-why-body strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+/* the checklist is now the first thing in the result, so it carries no heading */
+.verdict {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+  margin-bottom: 1.3rem;
+}
+
+/* Unmarked paragraphs of a full essay: present, but out of the way. */
+.skipped-paras {
+  margin: 0.4rem 0 1rem;
+}
+
+.skipped-paras > summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  background: var(--bg);
+  border: 1px dashed var(--rule);
+  border-radius: 999px;
+  padding: 0.24rem 0.7rem;
+}
+
+.skipped-paras > summary::-webkit-details-marker {
+  display: none;
+}
+
+.skipped-paras > summary::before {
+  content: '▸';
+  font-size: 0.7em;
+  transition: transform 0.15s ease;
+}
+
+.skipped-paras[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.skipped-paras > summary:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+.skipped-body {
+  padding-top: 0.6rem;
+  opacity: 0.72;
+}

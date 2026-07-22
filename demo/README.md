@@ -46,6 +46,20 @@ their cached weights indefinitely. Publishing a new model under a **new repo or
 revision** is the reliable way to push an update, rather than overwriting files
 in place.
 
+## Full essays are the intended input
+
+The band in `score_model.json` was calibrated on **whole essays**, so pasting the
+complete redação is the calibrated path and the UI asks for that. Pasting only a
+conclusion still works but is off-distribution, which the panel says.
+
+This is safe because the model concentrates its output where the proposta actually
+lives. Measured on the 30-essay external benchmark: **156 of 185 spans (84%) fall in
+the last paragraph**, and 19 of 30 essays have no marks at all before it. So
+`renderEssayHtml()` collapses runs of unmarked paragraphs behind a "N parágrafos sem
+marcações" toggle — otherwise a reader scrolls through their own introduction to
+reach the one paragraph that got marked. It degrades sensibly: a single-paragraph
+input collapses nothing, and an essay with no marks anywhere is shown whole.
+
 ## Layout
 
 | file | role |

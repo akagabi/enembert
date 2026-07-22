@@ -37,8 +37,8 @@ app.innerHTML = `
   <div class="wrap">
     <header>
       <p class="eyebrow"><span class="mark-dot" aria-hidden="true"></span>enemBERT · ferramenta de estudo (não oficial)</p>
-      <h1>Sua proposta de intervenção tem os <span class="swipe">5 elementos</span>?</h1>
-      <p class="lede">Cole o texto e veja, marcado, quais dos cinco elementos aparecem — agente, ação, meio, efeito e detalhamento — e quais estão faltando.</p>
+      <h1>Sua conclusão tem os <span class="swipe">5 elementos</span>?</h1>
+      <p class="lede">Cole sua redação inteira e veja quais aparecem na proposta de intervenção.</p>
       <div class="notice-row">
         <span class="notice-chip">${ICON_LOCK}sua redação não sai do seu navegador</span>
         <span class="notice-chip">${ICON_INFO}não é uma nota nem uma correção</span>
@@ -50,14 +50,14 @@ app.innerHTML = `
 
     <section class="workspace-card">
       <form id="analyze-form" novalidate>
-        <label class="field-label" for="essay">Cole o texto da sua proposta de intervenção</label>
+        <label class="field-label" for="essay">Cole sua redação</label>
         <textarea
           id="essay"
-          rows="8"
-          placeholder="Cole aqui a conclusão (ou a redação inteira) — por exemplo: &quot;Portanto, cabe ao Ministério da Educação, órgão responsável pela política educacional do país, criar campanhas de conscientização nas escolas, por meio de parcerias com ONGs, a fim de reduzir a evasão escolar entre os jovens.&quot;"
+          rows="9"
+          placeholder="Cole a redação inteira aqui. O modelo procura a proposta de intervenção sozinho — normalmente na conclusão."
         ></textarea>
         <div class="form-row">
-          <button id="go" type="submit" disabled>Encontrar elementos</button>
+          <button id="go" type="submit" disabled>Analisar</button>
           <div id="status" class="status-line">
             <span class="dot" aria-hidden="true"></span>
             <span id="status-text">carregando o modelo…</span>
@@ -73,34 +73,49 @@ app.innerHTML = `
 
       <div id="result-view" class="result-view" hidden>
         <div class="result-toolbar">
-          <h2>Sua redação, marcada</h2>
-          <button id="edit-btn" type="button" class="btn-edit">${ICON_EDIT}editar / colar outra</button>
+          <h2>Resultado</h2>
+          <button id="edit-btn" type="button" class="btn-edit">${ICON_EDIT}colar outra</button>
         </div>
 
+        <section id="verdict" class="verdict" hidden aria-label="Quais elementos foram encontrados">
+          <ul class="checklist" id="checklist"></ul>
+        </section>
+
         <section id="score-panel" class="score-panel" hidden aria-labelledby="score-heading">
-          <h2 id="score-heading">Competência 5 — faixa aproximada</h2>
+          <h2 id="score-heading">Faixa aproximada de Competência 5</h2>
           <div id="score-body"></div>
         </section>
 
         <div id="output"></div>
         <p id="hedge-note" class="hedge-note" hidden>
-          Trechos com <span class="sample">sublinhado tracejado</span> são casos em que o modelo teve baixa confiança —
-          vale conferir esses com mais atenção.
+          <span class="sample">Sublinhado tracejado</span> = o modelo teve pouca certeza nesse trecho.
         </p>
 
-        <section id="verdict" class="verdict" hidden>
-          <h2>Checklist dos 5 elementos</h2>
-          <ul class="checklist" id="checklist"></ul>
-          <p class="limits-note">
-            <strong>Sobre a confiabilidade:</strong> é a estimativa de um modelo, não uma verificação garantida — erra
-            mais em detalhamento e meio. Use como um segundo par de olhos, não como palavra final.
-          </p>
-        </section>
+        <details class="fine-print">
+          <summary>Como interpretar · limitações</summary>
+          <div class="fine-print-body">
+            <p>
+              <strong>Isto não é uma correção nem uma nota.</strong> O modelo só procura os cinco
+              elementos da proposta de intervenção. Ele não avalia gramática, argumentação, coesão
+              nem as outras quatro competências.
+            </p>
+            <p>
+              <strong>Ele erra.</strong> Acerta menos em <em>detalhamento</em> e <em>meio</em> do que
+              nos outros três. Um elemento marcado como ausente pode estar lá, escrito de um jeito que
+              o modelo não reconheceu — e o contrário também acontece. Use como um segundo par de
+              olhos, não como palavra final.
+            </p>
+            <p>
+              <strong>Os rótulos de treino vieram de outra IA</strong>, não de corretores do ENEM, e
+              nunca foram revisados por um especialista. Definições adaptadas de ${RUBRIC_ATTRIBUTION}.
+            </p>
+          </div>
+        </details>
       </div>
     </section>
 
     <footer>
-      <p>enemBERT é um projeto independente, não afiliado ao INEP/MEC · definições adaptadas de ${RUBRIC_ATTRIBUTION} · roda localmente via transformers.js — nenhum texto é enviado a servidores.</p>
+      <p>Projeto independente, sem vínculo com o INEP/MEC · <a href="https://github.com/akagabi/enembert">código e avaliação no GitHub</a></p>
     </footer>
   </div>
 `;
@@ -145,6 +160,47 @@ function renderParagraphHtml(paragraph: string, spans: TagSpan[]): { html: strin
   }
   html += escapeHtml(paragraph.slice(last));
   return { html: `<p>${html}</p>`, hedged };
+}
+
+
+// With a full essay pasted, the elements live almost entirely in the conclusion
+// (measured: 84% of spans land in the last paragraph, and 19 of 30 essays have
+// no marks at all before it). Rendering four untouched paragraphs above the one
+// that matters just makes the reader scroll past their own introduction, so runs
+// of unmarked paragraphs collapse into a single expandable line.
+function renderEssayHtml(paragraphs: string[], spansPerPara: TagSpan[][]): { html: string; hedged: boolean } {
+  const parts = paragraphs.map((p, i) => ({
+    ...renderParagraphHtml(p, spansPerPara[i]),
+    marked: spansPerPara[i].length > 0,
+  }));
+  const hedged = parts.some((r) => r.hedged);
+
+  // Nothing was found anywhere: show the essay whole rather than collapsing all of it.
+  if (!parts.some((r) => r.marked)) {
+    return { html: `<div class="essay-output">${parts.map((r) => r.html).join('')}</div>`, hedged };
+  }
+
+  let html = '';
+  let run: string[] = [];
+  const flush = () => {
+    if (!run.length) return;
+    const n = run.length;
+    html += `<details class="skipped-paras">
+      <summary>${n} parágrafo${n > 1 ? 's' : ''} sem marcações</summary>
+      <div class="skipped-body">${run.join('')}</div>
+    </details>`;
+    run = [];
+  };
+  for (const part of parts) {
+    if (part.marked) {
+      flush();
+      html += part.html;
+    } else {
+      run.push(part.html);
+    }
+  }
+  flush();
+  return { html: `<div class="essay-output">${html}</div>`, hedged };
 }
 
 interface FoundQuote {
@@ -226,22 +282,16 @@ function renderChecklist(results: Record<Element, FoundQuote[]>): string {
 // the panel rather than buried in a tooltip.
 function renderScorePanelHtml(b: CoarseBand): string {
   const pct = (v: number) => (v / 200) * 100;
-  const groupLabel = b.isHigh
-    ? `${b.cut} ou mais dos cinco elementos`
-    : `menos de ${b.cut} dos cinco elementos`;
-  const otherLabel = b.isHigh
-    ? `quem tinha menos de ${b.cut}`
-    : `quem tinha ${b.cut} ou mais`;
+  const group = b.isHigh ? `${b.cut} ou mais elementos` : `menos de ${b.cut} elementos`;
+  const other = b.isHigh ? `com menos de ${b.cut}` : `com ${b.cut} ou mais`;
 
   return `
     <p class="score-lead">
-      O modelo encontrou <strong>${b.nElements} de 5</strong> elementos. Num teste com 30 redações
-      já corrigidas por humanos, as que tinham ${groupLabel} tiraram, na metade central dos casos,
-      entre <strong>${b.lo}</strong> e <strong>${b.hi}</strong> pontos na Competência 5
-      (mediana ${b.median}, de um máximo de 200).
+      Entre 30 redações já corrigidas por humanos, as que tinham <strong>${group}</strong>
+      tiraram de <strong>${b.lo}</strong> a <strong>${b.hi}</strong> (mediana ${b.median}, máximo 200).
     </p>
     <div class="score-meter" role="img"
-         aria-label="Faixa aproximada de Competência 5: entre ${b.lo} e ${b.hi} de 200, mediana ${b.median}">
+         aria-label="Entre ${b.lo} e ${b.hi} de 200, mediana ${b.median}">
       <div class="score-meter-track">
         <div class="score-meter-other" style="left:${pct(b.otherLo)}%;width:${pct(b.otherHi - b.otherLo)}%"></div>
         <div class="score-meter-range" style="left:${pct(b.lo)}%;width:${pct(b.hi - b.lo)}%"></div>
@@ -252,23 +302,28 @@ function renderScorePanelHtml(b: CoarseBand): string {
       </div>
       <p class="score-meter-key">
         <span class="key-mine"></span> seu grupo
-        <span class="key-other"></span> o outro grupo (${otherLabel}: ${b.otherLo}–${b.otherHi})
+        <span class="key-other"></span> redações ${other} (${b.otherLo}–${b.otherHi})
       </p>
     </div>
-    <div class="score-disclaimer">
-      ${ICON_INFO}
-      <div>
-        <p><strong>Isto não é uma nota, e o sinal é fraco.</strong></p>
+    <details class="score-why">
+      <summary>Não é uma nota — e o sinal aqui é fraco</summary>
+      <div class="score-why-body">
         <p>
-          A faixa olha só <em>quantos</em> dos cinco elementos aparecem — não o quanto foram bem
-          desenvolvidos, nem gramática, argumentação ou coesão. As faixas dos dois grupos se
-          sobrepõem bastante, a amostra tem apenas 30 redações e a diferença entre os grupos não é
-          estatisticamente robusta. Uma versão anterior desta caixa tentava estimar a nota exata e
-          errava em média 62 pontos, subestimando justamente as redações boas — por isso ela foi
-          substituída por esta faixa larga.
+          Esta faixa olha só <em>quantos</em> dos cinco elementos aparecem, não o quanto foram bem
+          desenvolvidos. Repare no gráfico: as faixas dos dois grupos se sobrepõem muito, ou seja,
+          muita gente com poucos elementos tirou mais que gente com muitos.
+        </p>
+        <p>
+          A amostra tem 30 redações e a diferença entre os grupos não é estatisticamente robusta.
+          Uma versão anterior desta caixa tentava estimar sua nota exata: errava em média 62 pontos
+          e subestimava justamente as redações boas, então foi substituída por esta faixa larga.
+        </p>
+        <p>
+          A faixa foi calibrada com redações <em>inteiras</em>. Se você colar só a conclusão, ela
+          fica menos confiável — cole o texto completo quando puder.
         </p>
       </div>
-    </div>
+    </details>
   `;
 }
 
@@ -341,7 +396,7 @@ async function runAnalysis(): Promise<void> {
   analyzeError.hidden = true;
 
   goBtn.disabled = true;
-  const originalLabel = goBtn.textContent ?? 'Encontrar elementos';
+  const originalLabel = goBtn.textContent ?? 'Analisar';
   goBtn.textContent = 'Analisando…';
 
   try {
@@ -349,9 +404,9 @@ async function runAnalysis(): Promise<void> {
     for (const p of paragraphs) {
       spansPerPara.push(await tagParagraph(p));
     }
-    const rendered = paragraphs.map((p, i) => renderParagraphHtml(p, spansPerPara[i]));
-    output.innerHTML = `<div class="essay-output">${rendered.map((r) => r.html).join('')}</div>`;
-    hedgeNote.hidden = !rendered.some((r) => r.hedged);
+    const essay = renderEssayHtml(paragraphs, spansPerPara);
+    output.innerHTML = essay.html;
+    hedgeNote.hidden = !essay.hedged;
 
     const results = computeElementResults(paragraphs, spansPerPara);
     checklistEl.innerHTML = renderChecklist(results);
