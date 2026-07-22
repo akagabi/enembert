@@ -47,7 +47,17 @@ class WeightedTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def train(out_dir="runs/model", epochs=6, lr=2e-5, batch=8):
+def latest_checkpoint(out_dir: str):
+    """Newest checkpoint-N in out_dir, or None. Lets training survive being killed."""
+    import re
+    from pathlib import Path
+    cks = [p for p in Path(out_dir).glob("checkpoint-*") if (p / "trainer_state.json").exists()]
+    if not cks:
+        return None
+    return str(max(cks, key=lambda p: int(re.search(r"checkpoint-(\d+)", p.name).group(1))))
+
+
+def train(out_dir="runs/model", epochs=6, lr=2e-5, batch=8, save_steps=250, resume=True):
     tok = AutoTokenizer.from_pretrained(BACKBONE)
     ds = build_hf_dataset(tok)
     model = AutoModelForTokenClassification.from_pretrained(
@@ -64,13 +74,22 @@ def train(out_dir="runs/model", epochs=6, lr=2e-5, batch=8):
             y_pred.append([ID2LABEL[q] for q, l in zip(pr, lb) if l != -100])
         return {"f1": f1_score(y_true, y_pred)}
 
+    # Checkpoint every `save_steps` rather than per-epoch: long runs on this machine
+    # get killed, and step-level checkpoints mean each partial run banks progress that
+    # the next invocation resumes from instead of starting over.
     args = TrainingArguments(out_dir, learning_rate=lr, num_train_epochs=epochs,
                              warmup_ratio=0.1, per_device_train_batch_size=batch,
-                             eval_strategy="epoch", save_strategy="epoch",
+                             eval_strategy="steps", save_strategy="steps",
+                             eval_steps=save_steps, save_steps=save_steps,
+                             save_total_limit=3,
                              load_best_model_at_end=True, metric_for_best_model="f1",
                              seed=42, logging_steps=50)
+    ck = latest_checkpoint(out_dir) if resume else None
+    if ck:
+        print(f"resuming from {ck}")
     WeightedTrainer(model=model, args=args, train_dataset=ds["train"], eval_dataset=ds["dev"],
                     data_collator=DataCollatorForTokenClassification(tok),
                     compute_metrics=metrics, class_weights=cw,
-                    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]).train()
+                    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
+                    ).train(resume_from_checkpoint=ck)
     model.save_pretrained(out_dir + "/final"); tok.save_pretrained(out_dir + "/final")
