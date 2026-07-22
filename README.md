@@ -6,6 +6,8 @@
 
 `BERTimbau` · `token classification` · `pt-BR` · roda no navegador · MIT / Apache-2.0
 
+**▶ [Testar agora / Try it now](https://akagabi.github.io/enembert/)** · [🤗 Modelo](https://huggingface.co/akagabi/enemBERT)
+
 [Português](#português) · [English](#english)
 
 ---
@@ -116,7 +118,8 @@ anotações *stand-off* (ids e posições de caracteres). Veja o
 - [Dataset card](./DATASET_CARD.md) — o dataset stand-off e a rotulagem
 - [Writeup](./docs/writeup.md) — por que supervisão fraca, onde quebrou, o que a avaliação honesta diz
 - [Resultado negativo](./docs/reports/score-estimate-negative-result.md) — o recurso construído, medido e apagado
-- Demo online e Hugging Face (`akagabi/enemBERT`): *em breve*
+- **[Testar o demo online](https://akagabi.github.io/enembert/)** — roda no seu navegador, nada é enviado
+- **[Modelo no Hugging Face](https://huggingface.co/akagabi/enemBERT)** — `akagabi/enemBERT`
 
 ### Licença e créditos
 
@@ -235,7 +238,8 @@ character offsets). See the [dataset card](./DATASET_CARD.md).
 - [Dataset card](./DATASET_CARD.md) — the stand-off dataset and the labeling process
 - [Writeup](./docs/writeup.md) — why weak supervision, where it broke, what honest evaluation says
 - [Negative result](./docs/reports/score-estimate-negative-result.md) — the feature built, measured, and deleted
-- Live demo and Hugging Face (`akagabi/enemBERT`): *coming soon*
+- **[Try the live demo](https://akagabi.github.io/enembert/)** — runs in your browser, nothing is uploaded
+- **[Model on Hugging Face](https://huggingface.co/akagabi/enemBERT)** — `akagabi/enemBERT`
 
 ### License and credits
 
